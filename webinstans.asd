@@ -33,7 +33,7 @@
 (defpackage #:webinstans
   (:use #:common-lisp #:instans) ; #:lisp-unit 
   (:import-from :hunchentoot start stop content-type* easy-acceptor *dispatch-table* create-regex-dispatcher define-easy-handler)
-  (:import-from :parenscript ps import-macros-from-lisp create @ $)
+  (:import-from :parenscript ps import-macros-from-lisp create @)
   (:export "" "MAIN"))
 
 
