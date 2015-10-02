@@ -18,21 +18,30 @@
   (stop *server*)
   (setf *server* nil))
 
+;; (defun configurator-css ()
+;;   (let ((border "1px solid #ccc"))
+;;     (css-lite:css
+;;      (("body")
+;;       (:width "70%" :margin "0 auto" :font-family "sans-serif" :border-left border :border-right border :border-bottom border))
+;;      (("h1")
+;;       (:font-size "140%" :text-align "center"))
+;;      (("h2")
+;;       (:color "#000" :background-color "#cef" :margin "0 auto" :padding "4px 0"))
+;;      (("#header")
+;;       (:background-color "#cef" :padding "8px"))
+;;      (("#header .logo")
+;;       (:display "block" :margin "0 auto"))
+;;      (("#header .strapline")
+;;       (:display "block" :text-align "center" :font-size "80%" :font-style "italic")))))
+
 (defun configurator-css ()
-  (let ((border "1px solid #ccc"))
+  (let (;(border "1px solid #ccc")
+	)
     (css-lite:css
-     (("body")
-      (:width "70%" :margin "0 auto" :font-family "sans-serif" :border-left border :border-right border :border-bottom border))
-     (("h1")
-      (:font-size "140%" :text-align "center"))
-     (("h2")
-      (:color "#000" :background-color "#cef" :margin "0 auto" :padding "4px 0"))
-     (("#header")
-      (:background-color "#cef" :padding "8px"))
-     (("#header .logo")
-      (:display "block" :margin "0 auto"))
-     (("#header .strapline")
-      (:display "block" :text-align "center" :font-size "80%" :font-style "italic")))))
+      (("#tabs-1")
+       (:font-size "14px"))
+      ((".ui-widget-header")
+       (:background "#b9cd6d" :border "1px solid #b9cd6d" :color "#FFFFFF" :font-weight "bold")))))
 
 (define-easy-handler (home-page :uri "/configure") ()
   (setf (content-type*) "text/html")
@@ -45,49 +54,50 @@
 		   (:meta :http-equiv "Content-Type" 
 			  :content    "text/html;charset=utf-8")
 		   (:title "WebINSTANS Configurator")
+		   (:link :rel "stylesheet" :href "http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css")
 		   (:style :type "text/css" (cl-who:str (configurator-css)))
-		   (:script :src "http://code.jquery.com/jquery-2.1.4.min.js")
-		   (:script :src "http://layout.jquery-dev.com/lib/js/jquery.layout-latest.js")
-;; <script>
-;;     $(document).ready(function () {
-;;         $('body').layout({ applyDefaultStyles: true });
-;;     });
-;; </script>
-;; <script type='text/javascript'>at($(document), ready)(function () {
-;;     return at($('block'), layout)({ applyDefaultStyles : true });
-;; });
-;; </script>
+		   (:script :src "http://code.jquery.com/jquery-1.10.2.min.js")
+		   (:script :src "http://code.jquery.com/ui/1.11.4/jquery-ui.js")
+;		   (:script :src "http://layout.jquery-dev.com/lib/js/jquery.layout-latest.js")
+		   ;; (:script (cl-who:str
+		   ;; 	     ;; (ps ((parenscript:@ ($ document) ready)
+		   ;; 	     ;; 	  (lambda ()
+		   ;; 	     ;; 	    ((parenscript:@ ($ "body") layout)
+		   ;; 	     ;; 	     (parenscript:create apply-default-styles t)))))
+		   ;; 	     ;; --->
+		   ;; 	     ;; <script>
+		   ;; 	     ;;     $(document).ready(function () {
+		   ;; 	     ;;         $('body').layout({ applyDefaultStyles: true });
+		   ;; 	     ;;     });
+		   ;; 	     ;; </script>
+		   ;; 	     ;; ==========================
+		   ;; 	     ;; <script>
+		   ;; 	     ;; $(function() {
+		   ;; 	     ;;   $( "#tabs" ).tabs();
+		   ;; 	     ;; });
+		   ;; 	     ;; </script>
+		   ;; 	     (ps ((parenscript:@ ($ document) ready)
+		   ;; 		  (lambda ()
+		   ;; 		    ((parenscript:@ ($ "#tabs") tabs)
+		   ;; 		     (parenscript:create :active 1)))))))
 		   (:script (cl-who:str
-						     ;; (ps ((@ ($ document) ready)
-						     ;; 	  (lambda ()
-						     ;; 	    ((@ ($ "input.btn") click)
-						     ;; 	     (lambda ()
-						     ;; 	       (block inner
-						     ;; 		 (let ((text (chain ($ "input.txt") (val) (trim))))
-						     ;; 		   (cond ((equal text "") 
-						     ;; 			  ((@ ($ "#error") fade-in))
-						     ;; 			  (return-from inner false)))))))))))))
-						     ;; -->
-						     ;; <script type='text/javascript'>at($(document), ready)(function () {
-						     ;;     return at($('input.btn'), click)(function () {
-						     ;;         var text = chain($('input.txt'), val(), trim());
-						     ;;         if (text == '') {
-						     ;;             at($('#error'), fadeIn)();
-						     ;;             return false;
-						     ;;         };
-						     ;;     });
-						     ;; });
-						     ;; </script>
-						     (ps ((parenscript:@ ($ document) ready)
-						     	  (lambda ()
-						     	    ((parenscript:@ ($ "body") layout)
-							     (parenscript:create apply-default-styles t))))))))
+			     (ps ((parenscript:@ ($ "#tabs") tabs)
+					;(parenscript:create :active 1)
+				  ))))
+		   )
 		  (:body
-		   (:div :class "ui-layout-center" "Center")
-		   (:div :class "ui-layout-north" "North")
-		   (:div :class "ui-layout-south" "South")
-		   (:div :class "ui-layout-east" "East")
-		   (:div :class "ui-layout-west" "West"))))
+		   ;; (:div :class "ui-layout-center" "Center")
+		   ;; (:div :class "ui-layout-north" "North")
+		   ;; (:div :class "ui-layout-south" "South")
+		   ;; (:div :class "ui-layout-east" "East")
+		   ;; (:div :class "ui-layout-west" "West"))
+		   (:div :id "tabs"
+			 (:ul
+			  (:li (:a :href "#configure-tab" "Configure"))
+			  (:li (:a :href "#execute-tab" "Execute")))
+			 (:div :id "configure-tab" (:p "Configure"))
+			 (:div :id "execute-tab" (:p "Execute"))))
+		  ))
 	  ))
     (with-open-file (ostr "output" :direction :output :if-exists :supersede)
       (format ostr "~%output:~%~A" output))
