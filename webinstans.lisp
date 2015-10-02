@@ -38,10 +38,11 @@
   (let (;(border "1px solid #ccc")
 	)
     (css-lite:css
-      (("#tabs-1")
+      (("#tabs")
        (:font-size "14px"))
-      ((".ui-widget-header")
-       (:background "#b9cd6d" :border "1px solid #b9cd6d" :color "#FFFFFF" :font-weight "bold")))))
+      ;; ((".ui-widget-header")
+      ;;  (:background "#b9cd6d" :border "1px solid #b9cd6d" :color "#FFFFFF" :font-weight "bold"))
+      )))
 
 (define-easy-handler (home-page :uri "/configure") ()
   (setf (content-type*) "text/html")
@@ -51,46 +52,18 @@
 		  :xml\:lang "en" 
 		  :lang "en"
 		  (:head 
-		   (:meta :http-equiv "Content-Type" 
-			  :content    "text/html;charset=utf-8")
-		   (:title "WebINSTANS Configurator")
-		   (:link :rel "stylesheet" :href "http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css")
-		   (:style :type "text/css" (cl-who:str (configurator-css)))
-		   (:script :src "http://code.jquery.com/jquery-1.10.2.min.js")
-		   (:script :src "http://code.jquery.com/ui/1.11.4/jquery-ui.js")
-;		   (:script :src "http://layout.jquery-dev.com/lib/js/jquery.layout-latest.js")
-		   ;; (:script (cl-who:str
-		   ;; 	     ;; (ps ((parenscript:@ ($ document) ready)
-		   ;; 	     ;; 	  (lambda ()
-		   ;; 	     ;; 	    ((parenscript:@ ($ "body") layout)
-		   ;; 	     ;; 	     (parenscript:create apply-default-styles t)))))
-		   ;; 	     ;; --->
-		   ;; 	     ;; <script>
-		   ;; 	     ;;     $(document).ready(function () {
-		   ;; 	     ;;         $('body').layout({ applyDefaultStyles: true });
-		   ;; 	     ;;     });
-		   ;; 	     ;; </script>
-		   ;; 	     ;; ==========================
-		   ;; 	     ;; <script>
-		   ;; 	     ;; $(function() {
-		   ;; 	     ;;   $( "#tabs" ).tabs();
-		   ;; 	     ;; });
-		   ;; 	     ;; </script>
-		   ;; 	     (ps ((parenscript:@ ($ document) ready)
-		   ;; 		  (lambda ()
-		   ;; 		    ((parenscript:@ ($ "#tabs") tabs)
-		   ;; 		     (parenscript:create :active 1)))))))
+		   (:meta :charset "utf-8")
+		   (:title "jQuery UI Tabs functionality")
+		   (:link :href "http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css" :rel "stylesheet")
+		   (:script :src "http://code.jquery.com/jquery-1.10.2.js")
+		   (:script :src "http://code.jquery.com/ui/1.10.4/jquery-ui.js")
+		   (:style (cl-who:str (configurator-css)))
 		   (:script (cl-who:str
-			     (ps ((parenscript:@ ($ "#tabs") tabs)
-					;(parenscript:create :active 1)
-				  ))))
+			     (ps ($ (lambda ()
+				      ((parenscript:@ ($ "#tabs") tabs)
+				       (parenscript:create :active 1)))))))
 		   )
 		  (:body
-		   ;; (:div :class "ui-layout-center" "Center")
-		   ;; (:div :class "ui-layout-north" "North")
-		   ;; (:div :class "ui-layout-south" "South")
-		   ;; (:div :class "ui-layout-east" "East")
-		   ;; (:div :class "ui-layout-west" "West"))
 		   (:div :id "tabs"
 			 (:ul
 			  (:li (:a :href "#configure-tab" "Configure"))
