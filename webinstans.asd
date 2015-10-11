@@ -5,7 +5,7 @@
 
 (ql:quickload "hunchentoot")
 (ql:quickload "parenscript")
-(push  "/Users/enu/aalto-dsg/instans/src/" asdf:*central-registry*)
+(push  "/Users/enu/aaltodsg/instans/src/" asdf:*central-registry*)
 (compile-system :instans)
 (load-system :instans)
 
