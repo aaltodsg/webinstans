@@ -46,77 +46,56 @@
 
 (define-easy-handler (home-page :uri "/configure") ()
   (setf (content-type*) "text/html")
-  (let ((output
-	 (cl-who:with-html-output-to-string (*standard-output* nil :prologue t :indent t)
-	   (:html :xmlns "http://www.w3.org/1999/xhtml"
-		  :xml\:lang "en" 
-		  :lang "en"
-		  (:head 
-		   (:meta :charset "utf-8")
-		   (:title "jQuery UI Tabs functionality")
-		   (:link :href "http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css" :rel "stylesheet")
-		   (:script :src "http://code.jquery.com/jquery-1.10.2.js")
-		   (:script :src "http://code.jquery.com/ui/1.10.4/jquery-ui.js")
-		   (:style (cl-who:str (configurator-css)))
-		   (:script (cl-who:str
-			     (ps ($ (lambda ()
-				      ((parenscript:@ ($ "#tabs") tabs)
-				       (parenscript:create :active 0)))))))
-		   )
-		  (:body
-		   (:div :id "tabs"
-			 (:ul
-			  (:li (:a :href "#configure-tab" "Configure"))
-			  (:li (:a :href "#execute-tab" "Execute")))
-			 (:div :id "configure-tab"
-			       (:form :action "#"
-				      (:fieldset
-				       (:ol
-					(:li (:select :name "Param1" :id "param1"
-						      (:option "rules")
-						      (:option "input")
-						      (:option "input-trig")
-						      (:option "input-turtle")
-						      (:option "input-n-quads")
-						      (:option "input-n-triples")
-						      (:option "base")
-						      (:option "directory")
-						      (:option "graph")
-						      (:option "ask-output")
-						      (:option "ask-output-ttl")
-						      (:option "ask-output-srx")
-						      (:option "select-output")
-						      (:option "select-output-append")
-						      (:option "select-output-csv")
-						      (:option "select-output-srx")
-						      (:option "select-output-ttl")
-						      (:option "construct-output")
-						      (:option "construct-output-append")
-						      (:option "construct-output-trig")
-						      (:option "construct-output-turtle")
-						      (:option "construct-output-n-quads")
-						      (:option "construct-output-n-triples")
-						      (:option "rdf-input-unit")
-						      (:option "rdf-operations")
-						      (:option "allow-rule-instance-removal")
-						      (:option "input-single")
-						      (:option "input-blocks")
-						      (:option "input-document")
-						      (:option "input-events")
-						      (:option "warn-on-errors")
-						      (:option "verbose")
-						      (:option "rete-html")
-						      (:option "name")
-						      (:option "report")
-						      (:option "report-sizes-file")
-						      (:option "prefix-encoding")
-						      (:option "print-prefix-encodings")
-						      (:option "time")
-						      )))
-						)))
-			 (:div :id "execute-tab" (:p "Execute"))))
-		  ))
-	  ))
+  (let* ((head (cl-who::with-html-output-to-string (*standard-output* nil :prologue nil :indent t)
+		 (:head 
+		  (:meta :charset "utf-8")
+		  (:title "jQuery UI Tabs functionality")
+		  (:link :href "http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css" :rel "stylesheet")
+		  (:script :src "http://code.jquery.com/jquery-1.10.2.js")
+		  (:script :src "http://code.jquery.com/ui/1.10.4/jquery-ui.js")
+		  (:style (cl-who:str (configurator-css)))
+		  (:script (cl-who:str
+			    (ps ($ (lambda ()
+				     ((parenscript:@ ($ "#tabs") tabs)
+				      (parenscript:create :active 0)))))))
+		  )))
+	 (split-command-cases (loop for case in instans::*instans-command-cases*
+	 		        collect (instans::split-command-case-parameters case)))
+	 (instans-options (loop for (name properties) in split-command-cases
+				for usage-text = (format nil "~{~A~^ ~}" (getf properties :usage-texts))
+				nconc (loop for option in (getf properties :expanded-options)
+					    collect (list name option usage-text))))
+	 (select-options (with-output-to-string (*standard-output*)
+			   (loop for (casename option usage-text) in instans-options
+				 for option-name = (first option)
+				 for option-type = (second option)
+				 when (stringp option-name)
+				 do (cl-who::with-html-output (*standard-output* nil :indent t)
+				      (:option (cl-who::str (format nil "~A~@[ [~A]~]" (subseq (first option) 2)
+								    (and (symbolp option-type) option-type))))))))
+	 (body (cl-who::with-html-output-to-string (*standard-output* nil :indent t)
+		 (:body
+		  (:div :id "tabs"
+			(:ul
+			 (:li (:a :href "#configure-tab" "Configure"))
+			 (:li (:a :href "#execute-tab" "Execute")))
+			(:div :id "configure-tab"
+			      (:form :action "#"
+				     (:fieldset
+				      (:ol
+				       (:li (:select :name "Param1" :id "param1" (cl-who::str select-options))))))
+			(:div :id "execute-tab" (:p "Execute")))))))
+	 (output (cl-who::with-html-output-to-string (*standard-output* nil :prologue t :indent t)
+		   (:html :xmlns "http://www.w3.org/1999/xhtml"
+			  :xml\:lang "en" 
+			  :lang "en"
+			  (cl-who::str head)
+			  (cl-who::str body)))))
     (with-open-file (ostr "output" :direction :output :if-exists :supersede)
-      (format ostr "~%output:~%~A" output))
+      ;; (format ostr "~%output:~%~A" output)
+      ;; (format ostr "~%icc: ~%~S" instans::*instans-command-cases*)
+      ;; (format ostr "~%split-command-cases:~%~S" split-command-cases)
+      ;; (format ostr "~%instans-options:~%~S" instans-options)
+      (format ostr "~%select-options:~%~A" select-options)
+      )
     output))
