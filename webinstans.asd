@@ -5,6 +5,8 @@
 
 (ql:quickload "hunchentoot")
 (ql:quickload "parenscript")
+(ql:quickload "css-lite")
+(ql:quickload "cl-who")
 (push  "/Users/enu/aaltodsg/instans/src/" asdf:*central-registry*)
 (compile-system :instans)
 (load-system :instans)
