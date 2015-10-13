@@ -62,11 +62,20 @@
 			       for option-type = (second option)
 			       when (stringp option-name)
 			       collect `(:option ,(format nil "~A~@[ [~A]~]" (subseq (first option) 2) (and (symbolp option-type) option-type)))))
-	 (add-parameter (eval `(ps (defun add-parameter ()
-				     (let* ((paramcount ((parenscript:@ ($ "#parameters") length)))
-					    (name (concatenate 'string "param" paramcount)))
-				       ((parenscript:@ ($ "#parameters") append)
-					(ps::who-ps-html (:li (:select :name name :id name ,@select-options)))))))))
+	 (select-options-html (eval `(cl-who::with-html-output-to-string (*standard-output* nil :prologue nil :indent t)
+				       (:select :id "options-select" :style "visibility: hidden" ,@select-options))))
+	 ;; (add-parameter-off (eval `(ps (defun add-parameter-off ()
+	 ;; 				 (let* ((paramcount ((ps:@ ($ "#parameters") length)))
+	 ;; 					(name (concatenate 'string "param" paramcount)))
+	 ;; 				   ((ps:@ ($ "#parameters") append)
+	 ;; 				    (ps::who-ps-html (:li (:select :name name :id name ,@select-options)))))))))
+ 	 (add-parameter (ps (defun add-parameter ()
+			      (alert ($ "#parameters"))
+			      (let* ((paramcount ((ps:@ ($ "#parameters") length)))
+				     (name (concatenate 'string "param" paramcount)))
+				((ps:@ ((ps:@ ((ps:@ ((ps:@ ($ "#parameters") append) (ps::who-ps-html (:li))) append) ((ps:@ ($ "#options-select") clone)))
+					      set-attribute) "name" name)
+				       set-attribute) "style" "visibility: visible")))))
 	 (head (cl-who::with-html-output-to-string (*standard-output* nil :prologue nil :indent t)
 		 (:head 
 		  (:meta :charset "utf-8")
@@ -75,14 +84,17 @@
 		  (:script :src "http://code.jquery.com/jquery-1.10.2.js")
 		  (:script :src "http://code.jquery.com/ui/1.10.4/jquery-ui.js")
 		  (:style (cl-who:str (configurator-css)))
+		  (:script (cl-who::str add-parameter))
 		  (:script (cl-who:str
 			    (ps ($ (lambda ()
-				     ((parenscript:@ ($ "#tabs") tabs)
-				      (parenscript:create :active 0)))))))
-		  (:script (cl-who::str add-parameter))
+				     ((ps:@ ($ "#tabs") tabs)
+				      (ps:create :active 0))
+;				     (alert ($ "#parameters"))
+				     (add-parameter))))))
 		  )))
 	 (body (cl-who::with-html-output-to-string (*standard-output* nil :indent t)
 		 (:body
+		  (cl-who::str select-options-html)
 		  (:div :id "tabs"
 			(:ul
 			 (:li (:a :href "#configure-tab" "Configure"))
@@ -90,7 +102,7 @@
 			(:div :id "configure-tab"
 			      (:form :action "#"
 				     (:fieldset
-				      (:ol :id "params"))))
+				      (:ol :id "parameters"))))
 			(:div :id "execute-tab" (:p "Execute"))))))
 	 (output (cl-who::with-html-output-to-string (*standard-output* nil :prologue t :indent t)
 		   (:html :xmlns "http://www.w3.org/1999/xhtml"
@@ -103,7 +115,7 @@
       ;; (format ostr "~%icc: ~%~S" instans::*instans-command-cases*)
       ;; (format ostr "~%split-command-cases:~%~S" split-command-cases)
       ;; (format ostr "~%instans-options:~%~S" instans-options)
-      (format ostr "~%select-options:~%~S" select-options)
+      (format ostr "~%select-options-html:~%~S" select-options-html)
       (format ostr "~%add-parameter:~%~S" add-parameter)
       )
     output))
