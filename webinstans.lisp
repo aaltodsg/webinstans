@@ -44,10 +44,17 @@
       ;;  (:background "#b9cd6d" :border "1px solid #b9cd6d" :color "#FFFFFF" :font-weight "bold"))
       )))
 
-(ps::defpsmacro stringify (&rest things)
+(defpsmacro stringify (&rest things)
   (if (and (= (length things) 1) (stringp (car things)))
       (car things)
       `(chain (list ,@things) (join ""))))
+
+(defpsmacro callchain (object &rest calls-and-params-list)
+  (loop for rest on calls-and-params-list by #'cddr
+        for call = (first rest)
+        for params = (second rest)
+        do (setf object `((@ ,object ,call) ,@params))
+        finally (return object)))
 
 (define-easy-handler (home-page :uri "/configure") ()
   (setf (content-type*) "text/html")
@@ -57,29 +64,50 @@
 				for usage-text = (format nil "~{~A~^ ~}" (getf properties :usage-texts))
 				nconc (loop for option in (getf properties :expanded-options)
 					    collect (list name option usage-text))))
-	 (select-options (loop for (casename option usage-text) in instans-options
-			       for option-name = (first option)
-			       for option-type = (second option)
-			       when (stringp option-name)
-			       collect `(:option ,(format nil "~A~@[ [~A]~]" (subseq (first option) 2) (and (symbolp option-type) option-type)))))
+	 (select-options (cons (list :option "Select option")
+			       (loop for (casename option usage-text) in instans-options
+				     for option-name = (first option)
+				     for option-type = (second option)
+				     when (stringp option-name)
+				     collect `(:option :type ,(if (eq option-type :file) "file" "any") ,(format nil "~A~@[ [~A]~]" (subseq (first option) 2) (and (symbolp option-type) option-type))))))
 	 (select-options-html (eval `(cl-who::with-html-output-to-string (*standard-output* nil :prologue nil :indent t)
 				       (:select :id "options-select" :style "visibility: hidden" ,@select-options))))
-	 ;; (add-parameter-off (eval `(ps (defun add-parameter-off ()
-	 ;; 				 (let* ((paramcount ((ps:@ ($ "#parameters") length)))
-	 ;; 					(name (concatenate 'string "param" paramcount)))
-	 ;; 				   ((ps:@ ($ "#parameters") append)
-	 ;; 				    (ps::who-ps-html (:li (:select :name name :id name ,@select-options)))))))))
  	 (add-parameter (ps (defun add-parameter ()
-			      (alert ($ "#parameters"))
-			      (let* ((paramcount ((ps:@ ($ "#parameters") length)))
-				     (name (concatenate 'string "param" paramcount)))
-				((ps:@ ((ps:@ ((ps:@ ((ps:@ ($ "#parameters") append) (ps::who-ps-html (:li))) append) ((ps:@ ($ "#options-select") clone)))
-					      set-attribute) "name" name)
-				       set-attribute) "style" "visibility: visible")))))
+;			      (alert ($ "#parameters"))
+			      (let* ((paramcount (getprop ($ "#parameters") 'length))
+				     (name (concatenate 'string "param" paramcount))
+				     (id (concatenate 'string "#param" paramcount)))
+				;; ((@
+				;;   ((@
+				;;     ((@
+				;;       ((@
+				;; 	((@
+				;; 	  ((@
+				;; 	    ((@ ($ "#parameters") append) "<LI></LI>")
+				;; 	    find) "li")
+				;; 	  attr) "id" name)
+				;; 	append) "<input type=\"text\"/ size=\"50\">")
+				;;       prepend) ((@ ($ "#options-select") clone)))
+				;;     find) "select")
+				;;   attr) "style" "visibility: visible")
+				(callchain ($ "#parameters") append ("<LI></LI>") find ("li") attr ("id" name) append ("<input type=\"text\"/ size=\"50\">") prepend ((@ ($ "#options-select") clone)) find ("select") attr ("style" "visibility: visible"))
+
+    ;; $( '#' + name ).change(function() {
+    ;;   $('<span>Your input here</span>').insertAfter('#' + name);
+    ;; });
+
+				((@ ($ id) change)
+				 (lambda ()
+				   (let ((s (concatenate 'string id "select option:selected")))
+				     ((@ ($ s) each) (lambda ()
+							  (let ((type ((@ ($ this) attr) "type")))
+							    (if (= type "file")
+								(alert ((@ ($ this) text))))))))
+				))))))
 	 (head (cl-who::with-html-output-to-string (*standard-output* nil :prologue nil :indent t)
 		 (:head 
 		  (:meta :charset "utf-8")
-		  (:title "jQuery UI Tabs functionality")
+		  (:title "webINSTANS")
 		  (:link :href "http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css" :rel "stylesheet")
 		  (:script :src "http://code.jquery.com/jquery-1.10.2.js")
 		  (:script :src "http://code.jquery.com/ui/1.10.4/jquery-ui.js")
@@ -87,8 +115,8 @@
 		  (:script (cl-who::str add-parameter))
 		  (:script (cl-who:str
 			    (ps ($ (lambda ()
-				     ((ps:@ ($ "#tabs") tabs)
-				      (ps:create :active 0))
+				     ((@ ($ "#tabs") tabs)
+				      (create :active 0))
 ;				     (alert ($ "#parameters"))
 				     (add-parameter))))))
 		  )))
