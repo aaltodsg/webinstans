@@ -90,7 +90,9 @@
 				;;       prepend) ((@ ($ "#options-select") clone)))
 				;;     find) "select")
 				;;   attr) "style" "visibility: visible")
-				(callchain ($ "#parameters") append ("<LI></LI>") find ("li") attr ("id" name) append ("<input type=\"text\"/ size=\"50\">") prepend ((@ ($ "#options-select") clone)) find ("select") attr ("style" "visibility: visible"))
+				(callchain ($ "#parameters") append ("<LI></LI>")
+					   find ("li") attr ("id" name) append ("<input type=\"text\"/ size=\"50\">") prepend (((@ ($ "#options-select") clone))) find ("select") attr ("style" "visibility: visible")
+					   )
 
     ;; $( '#' + name ).change(function() {
     ;;   $('<span>Your input here</span>').insertAfter('#' + name);
@@ -109,8 +111,10 @@
 		  (:meta :charset "utf-8")
 		  (:title "webINSTANS")
 		  (:link :href "http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css" :rel "stylesheet")
+		  (:link :href "http://www.cs.hut.fi/~enu/service.flextabledit.jquery.css" :rel "stylesheet")
 		  (:script :src "http://code.jquery.com/jquery-1.10.2.js")
 		  (:script :src "http://code.jquery.com/ui/1.10.4/jquery-ui.js")
+		  (:script :src "http://www.cs.hut.fi/~enu/service.flextabledit.jquery.min.js")
 		  (:style (cl-who:str (configurator-css)))
 		  (:script (cl-who::str add-parameter))
 		  (:script (cl-who:str
