@@ -4,6 +4,7 @@
 (in-package :asdf)
 
 (ql:quickload "hunchentoot")
+(ql:quickload "hunchensocket")
 (ql:quickload "parenscript")
 (ql:quickload "css-lite")
 (ql:quickload "cl-who")

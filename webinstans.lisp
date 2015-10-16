@@ -72,40 +72,40 @@
 				     collect `(:option :type ,(if (eq option-type :file) "file" "any") ,(format nil "~A~@[ [~A]~]" (subseq (first option) 2) (and (symbolp option-type) option-type))))))
 	 (select-options-html (eval `(cl-who::with-html-output-to-string (*standard-output* nil :prologue nil :indent t)
 				       (:select :id "options-select" :style "visibility: hidden" ,@select-options))))
- 	 (add-parameter (ps (defun add-parameter ()
-;			      (alert ($ "#parameters"))
-			      (let* ((paramcount (getprop ($ "#parameters") 'length))
-				     (name (concatenate 'string "param" paramcount))
-				     (id (concatenate 'string "#param" paramcount)))
-				;; ((@
-				;;   ((@
-				;;     ((@
-				;;       ((@
-				;; 	((@
-				;; 	  ((@
-				;; 	    ((@ ($ "#parameters") append) "<LI></LI>")
-				;; 	    find) "li")
-				;; 	  attr) "id" name)
-				;; 	append) "<input type=\"text\"/ size=\"50\">")
-				;;       prepend) ((@ ($ "#options-select") clone)))
-				;;     find) "select")
-				;;   attr) "style" "visibility: visible")
-				(callchain ($ "#parameters") append ("<LI></LI>")
-					   find ("li") attr ("id" name) append ("<input type=\"text\"/ size=\"50\">") prepend (((@ ($ "#options-select") clone))) find ("select") attr ("style" "visibility: visible")
-					   )
+;;  	 (add-parameter (ps (defun add-parameter ()
+;; ;			      (alert ($ "#parameters"))
+;; 			      (let* ((paramcount (getprop ($ "#parameters") 'length))
+;; 				     (name (concatenate 'string "param" paramcount))
+;; 				     (id (concatenate 'string "#param" paramcount)))
+;; 				;; ((@
+;; 				;;   ((@
+;; 				;;     ((@
+;; 				;;       ((@
+;; 				;; 	((@
+;; 				;; 	  ((@
+;; 				;; 	    ((@ ($ "#parameters") append) "<LI></LI>")
+;; 				;; 	    find) "li")
+;; 				;; 	  attr) "id" name)
+;; 				;; 	append) "<input type=\"text\"/ size=\"50\">")
+;; 				;;       prepend) ((@ ($ "#options-select") clone)))
+;; 				;;     find) "select")
+;; 				;;   attr) "style" "visibility: visible")
+;; 				(callchain ($ "#parameters") append ("<LI></LI>")
+;; 					   find ("li") attr ("id" name) append ("<input type=\"text\"/ size=\"50\">") prepend (((@ ($ "#options-select") clone))) find ("select") attr ("style" "visibility: visible")
+;; 					   )
 
-    ;; $( '#' + name ).change(function() {
-    ;;   $('<span>Your input here</span>').insertAfter('#' + name);
-    ;; });
+;;     ;; $( '#' + name ).change(function() {
+;;     ;;   $('<span>Your input here</span>').insertAfter('#' + name);
+;;     ;; });
 
-				((@ ($ id) change)
-				 (lambda ()
-				   (let ((s (concatenate 'string id "select option:selected")))
-				     ((@ ($ s) each) (lambda ()
-							  (let ((type ((@ ($ this) attr) "type")))
-							    (if (= type "file")
-								(alert ((@ ($ this) text))))))))
-				))))))
+;; 				((@ ($ id) change)
+;; 				 (lambda ()
+;; 				   (let ((s (concatenate 'string id "select option:selected")))
+;; 				     ((@ ($ s) each) (lambda ()
+;; 							  (let ((type ((@ ($ this) attr) "type")))
+;; 							    (if (= type "file")
+;; 								(alert ((@ ($ this) text))))))))
+;; 				))))))
 	 (head (cl-who::with-html-output-to-string (*standard-output* nil :prologue nil :indent t)
 		 (:head 
 		  (:meta :charset "utf-8")
@@ -116,13 +116,18 @@
 		  (:script :src "http://code.jquery.com/ui/1.10.4/jquery-ui.js")
 		  (:script :src "http://www.cs.hut.fi/~enu/service.flextabledit.jquery.min.js")
 		  (:style (cl-who:str (configurator-css)))
-		  (:script (cl-who::str add-parameter))
+;		  (:script (cl-who::str add-parameter))
 		  (:script (cl-who:str
 			    (ps ($ (lambda ()
 				     ((@ ($ "#tabs") tabs)
 				      (create :active 0))
 ;				     (alert ($ "#parameters"))
-				     (add-parameter))))))
+;				     (add-parameter)
+;				     (alert ($ "#paramform"))
+				     (callchain ($ "#paramform") submit ((lambda (event)
+									   (let ((params (callchain ($ "#parameters") val)))
+									     (alert (concatenate 'string "About to launch INSTANS with parameters " params))))))
+				     )))))
 		  )))
 	 (body (cl-who::with-html-output-to-string (*standard-output* nil :indent t)
 		 (:body
@@ -132,9 +137,13 @@
 			 (:li (:a :href "#configure-tab" "Configure"))
 			 (:li (:a :href "#execute-tab" "Execute")))
 			(:div :id "configure-tab"
-			      (:form :action "#"
-				     (:fieldset
-				      (:ol :id "parameters"))))
+			      (:form :id "paramform"
+				     :action ""
+				     (:textarea :name "parameters" :id "parameters" :rows 4 :cols 80)
+				     (:input :type "submit" :value "Launch")
+				     ;; (:fieldset
+				     ;;  (:ol :id "parameters"))
+				     ))
 			(:div :id "execute-tab" (:p "Execute"))))))
 	 (output (cl-who::with-html-output-to-string (*standard-output* nil :prologue t :indent t)
 		   (:html :xmlns "http://www.w3.org/1999/xhtml"
@@ -148,6 +157,6 @@
       ;; (format ostr "~%split-command-cases:~%~S" split-command-cases)
       ;; (format ostr "~%instans-options:~%~S" instans-options)
       (format ostr "~%select-options-html:~%~S" select-options-html)
-      (format ostr "~%add-parameter:~%~S" add-parameter)
+;      (format ostr "~%add-parameter:~%~S" add-parameter)
       )
     output))
