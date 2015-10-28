@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8" />
+
+<title>WebSocket Test</title>
+
+<script language="javascript" type="text/javascript" src="viz.js"></script>
+<script language="javascript" type="text/javascript" src="echo.js"></script>
+<script language="javascript" type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.js"></script>
+<script language="javascript" type="text/javascript" src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+ <script language="javascript" type="text/javascript"> 
+ $(document).ready(function() {  
+   <!-- $('#getdot').button(); -->
+   $('#initializeInstans').click(function() {
+     launchInstans();
+   });  
+   $('#getDot').click(function() {
+     getDot();
+   });  
+ });  
+</script>
+<h2>Initialize</h2>
+<div>
+  <p><span>Parameters: </span></p>
+  <textarea name="parameters" id="parameters" rows="4" cols="80"></textarea>
+</div>
+<div>
+  <button id="initializeInstans" type="button">Initialize INSTANS</button>
+</div>
+</form>
+<div>
+  <p><span>Commands: </span></p>
+  <button id="getDot" type="button">Get DOT</button>
+</div>
+<div id="output"></div>
+<div id="graph"></div>
