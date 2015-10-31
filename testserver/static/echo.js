@@ -3,6 +3,7 @@ var wsUri = "ws://localhost:12345/bongo";
 var output;
 var graph;
 var websocket;
+var isRunning = false;
 
 function init()
 {
@@ -44,7 +45,8 @@ function onMessage(evt)
         var graph = data.substring(i);
         // writeToScreen('<span style="color: blue;">GRAPH: ' + graph +'</span>');
         // document.body.innerHTML += Viz(graph);
-        document.body.innerHTML += graph;
+	$('#graph').innerHTML = graph;
+        // document.body.innerHTML += graph;
 	//         graph.innerHTML = Viz(graph);
     }
 }
@@ -68,7 +70,7 @@ function writeToScreen(message)
     output.appendChild(pre);
 }
 
-// -r /Users/enu/aaltodsg/instans/tests/input/exists/simple.rq --rete-html=/Users/enu/aaltodsg/webinstans/testserver/hunch/simple.html
+// -r /Users/enu/aaltodsg/instans/tests/input/exists/simple.rq --input=/Users/enu/aaltodsg/instans/tests/input/exists/simple.trig
 
 function launchInstans()
 {
@@ -76,6 +78,16 @@ function launchInstans()
     // alert('launching instans with parameters ' + parms);
     websocket.send('parameters ' + parms);
     // websocket.send('dot');
+}
+
+function runInstans()
+{
+    if (isRunning) {
+	alert('Already running');
+    } else {
+	isRunning = true;
+	websocket.send('run');
+    }
 }
 
 function getDot() {

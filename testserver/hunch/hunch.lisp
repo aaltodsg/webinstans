@@ -72,47 +72,12 @@
 		       (let ((svg (instans::file-contents-to-string (format nil "~A.svg" dot-file-name))))
 			 (logmsg "text-message-received: broadcast dot-result ~A" svg)
 		       (broadcast room "dot-result ~A" svg))))))
-		
-		;; 	   (broadcast room
-		;; 		      "dot-result digraph { a -> b; }"))
-		;; "dot-result digraph rete {
-		;;   { rank=same; 
-		;;     triple_pattern_node2[class=\"TRIPLE-PATTERN-NODE\" id=\"triple_pattern_node2\",color=Black, shape=oval, label=<&tau;<sub><font point-size=\"10\">2</font></sub>: ?0 ?1 ?2>, margin=0, tooltip=\"TRIPLE-PATTERN-NODE2: 
-		;; def (?S ?P ?O)
-		;; vars-out (?S ?P ?O)
-		;; [?0 ?1 ?2]\"];
-		;;   }
-		;;   { rank=same; 
-		;;     alpha_memory3[class=\"ALPHA-MEMORY\" id=\"alpha_memory3\",color=Black, shape=oval, label=<&alpha;<sub>m</sub><sub><font point-size=\"10\">3</font></sub>>, margin=0, tooltip=\"ALPHA-MEMORY3: 
-		;; vars-in (?S ?P ?O)
-		;; vars-out (?S ?P ?O)\"];
-		;;   }
-		;;   {
-		;;     beta_memory1[class=\"BETA-MEMORY\" id=\"beta_memory1\",color=Black, shape=oval, label=<&beta;<sub>m</sub><sub><font point-size=\"10\">1</font></sub>>, margin=0, tooltip=\"BETA-MEMORY1: \"];
-		;;     join_node4[class=\"JOIN-NODE\" id=\"join_node4\",color=Black, shape=oval, label=<J<sub><font point-size=\"10\">4</font></sub>>, margin=0, tooltip=\"JOIN-NODE4: 
-		;; def (?S ?P ?O)
-		;; vars-out (?S ?P ?O)\"];
-		;;     bind_node5[class=\"BIND-NODE\" id=\"bind_node5\",color=Black, shape=oval, label=<B[?3]<sub><font point-size=\"10\">5</font></sub>>, margin=0, tooltip=\"BIND-NODE5: 
-		;; def (?Z)
-		;; use (?O)
-		;; vars-in (?S ?P ?O)
-		;; vars-out (?S ?P ?O ?Z)
-		;; (LAMBDA (?2) (%+% ?2 10))\"];
-		;;     solution_modifiers_node6[class=\"SOLUTION-MODIFIERS-NODE\" id=\"solution_modifiers_node6\",color=Black, shape=oval, label=<SM<sub><font point-size=\"10\">6</font></sub>>, margin=0, tooltip=\"SOLUTION-MODIFIERS-NODE6: 
-		;; use (?Z)
-		;; vars-in (?S ?P ?O ?Z)
-		;; vars-out (?S ?P ?O ?Z)\"];
-		;;     select_node7[class=\"SELECT-NODE\" id=\"select_node7\",color=Black, shape=oval, label=<S<sub><font point-size=\"10\">7</font></sub>>, margin=0, tooltip=\"SELECT-NODE7: 
-		;; vars-in (?S ?P ?O ?Z)
-		;; vars-out (?S ?P ?O ?Z)\"];
-		;;   }
-		;;   triple_pattern_node2 -> alpha_memory3[label=<>];
-		;;   beta_memory1 -> join_node4:nw[label=<>];
-		;;   alpha_memory3 -> join_node4:ne[label=<>];
-		;;   join_node4 -> bind_node5[label=<>];
-		;;   bind_node5 -> solution_modifiers_node6[label=<>];
-		;;   solution_modifiers_node6 -> select_node7[label=<>];
-		;; }\""))
+		;; ((equal command "run")
+		;;  (logmsg "got command run")
+		;;  (logdescribe room)
+		;;  (let ((instans (chat-room-instans room)))
+		;;    (when instans
+		;;      (
 		(t (broadcast room "error: command ~A unknown" command)))))
     (t (e) (logmsg "text-message-received got an error ~S" e))))
 

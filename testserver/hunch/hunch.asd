@@ -30,7 +30,7 @@
                :cl-fad
 	       :cl-who)
   :serial t
-  :components ((:file "hunch") (:file "debugger")))
+  :components ((:file "hunch")))
 
 (defpackage #:hunch
   (:use #:common-lisp ; #:instans
