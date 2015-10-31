@@ -1,13 +1,13 @@
 //  var wsUri = "ws://echo.websocket.org/";
 var wsUri = "ws://localhost:12345/bongo";
-var output;
+var log;
 var graph;
 var websocket;
 var isRunning = false;
 
 function init()
 {
-    output = document.getElementById("output");
+    log = document.getElementById("log");
     graph = document.getElementById("graph");
     testWebSocket();
 }
@@ -23,54 +23,66 @@ function testWebSocket()
 
 function onOpen(evt)
 {
-    writeToScreen("CONNECTED");
+    writeToLog("CONNECTED");
     // doSend("dot rules.rq");
 }
 
 function onClose(evt)
 {
-    writeToScreen("DISCONNECTED");
+    writeToLog("DISCONNECTED");
 }
 
 function onMessage(evt)
 {
-    // writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
+    // writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
     //    websocket.close();
     var data = evt.data;
     var i = data.indexOf(" ");
     var cmd = data.substring(0, i);
-    writeToScreen('<span style="color: blue;">CMD: ' + cmd+'</span>');
+    writeToLog('<span style="color: blue;">CMD: ' + cmd+'</span>');
     if (cmd == "dot-result") {
-	//         writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
+	//         writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
         var graph = data.substring(i);
-        writeToScreen('<span style="color: blue;">GRAPH: ' + graph +'</span>');
+        // writeToLog('<span style="color: blue;">GRAPH: </span>');
         // document.body.innerHTML += Viz(graph);
-	$('#graph').innerHTML = graph;
+	$('#graph').html(graph);
         // document.body.innerHTML += graph;
 	//         graph.innerHTML = Viz(graph);
+	var height = $('#graph').height();
+	var width = $('#graph').width();
+	var margin = 2;
+	$('#graph').height(height+2*margin);
+	$('#graph').width(width+2*margin);
+        $('#graph' ).scrollTop( 0 );
+        $('#graph' ).scrollLeft( 0 );
+	$('#graph').css("visibility", "visible");
+    } else if (cmd == "enter") {
+	$('#ops').append('<div class="op enter"></div>').find('div:last-child').text(data);
+    } else if (cmd == "exit") {
+	$('#ops').append('<div class="op exit"></div>').find('div:last-child').text(data);
     }
 }
 
 function onError(evt)
 {
-    writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+    writeToLog('<div style="color: red;">ERROR:</div> ' + evt.data);
 }
 
 function doSend(message)
 {
-    writeToScreen("SENT: " + message); 
+    writeToLog("SENT: " + message); 
     websocket.send(message);
 }
 
-function writeToScreen(message)
+function writeToLog(message)
 {
     var pre = document.createElement("p");
     pre.style.wordWrap = "break-word";
     pre.innerHTML = message;
-    output.appendChild(pre);
+    log.appendChild(pre);
 }
 
-// -r /Users/enu/aaltodsg/instans/tests/input/exists/simple.rq --input=/Users/enu/aaltodsg/instans/tests/input/exists/simple.trig --construct-output=/Users/enu/aaltodsg/webinstans/testserver/hunch/simple-output.ttl
+// -d /Users/enu/aaltodsg/instans/tests/input/exists -r simple.rq --input=simple.trig --select-output-output=simple-output.csv
 
 function launchInstans()
 {
@@ -95,5 +107,3 @@ function getDot() {
 }
 
 window.addEventListener("load", init, false);
-
-

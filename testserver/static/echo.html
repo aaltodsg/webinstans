@@ -5,10 +5,61 @@
 <title>WebSocket Test</title>
 
 <!-- <script language="javascript" type="text/javascript" src="viz.js"></script> -->
+<style>
+.boxWrap{
+    width: 100%;
+    margin: 0 auto;
+}
+.box {
+    width: 45%;
+    float: left;
+}
+
+
+/* Clearfix */
+.clearfix:before, .clearfix:after { content: ""; display: table; }
+.clearfix:after { clear: both; }
+.clearfix { *zoom: 1; }
+
+#graph {
+    background: #ccc none repeat scroll 0 0;
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    position: relative;
+    <!-- overflow: auto; -->
+    visibility: hidden;
+  }
+  #log {
+    background: #ccc none repeat scroll 0 0;
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    height: 200px;
+    position: relative;
+    overflow: auto;
+  }
+  #ops {
+    background: #ccc none repeat scroll 0 0;
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    height: 200px;
+    position: relative;
+    overflow: auto;
+  }
+  op {
+    
+  }
+  enter {
+  }
+  exit {
+  }
+</style>
 <script language="javascript" type="text/javascript" src="echo.js"></script>
 <script language="javascript" type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.js"></script>
 <script language="javascript" type="text/javascript" src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
- <script language="javascript" type="text/javascript"> 
+<script language="javascript" type="text/javascript"> 
  $(document).ready(function() {  
    $('#initializeInstans').click(function() {
      launchInstans();
@@ -18,13 +69,13 @@
    }); 
    $('#runInstans').click(function() {
      runInstans();
-   }); 
+   });
  });  
 </script> 
 <h2>Initialize</h2>
 <div>
   <p><span>Parameters: </span></p>
-  <textarea name="parameters" id="parameters" rows="4" cols="80"></textarea>
+  <textarea name="parameters" id="parameters" rows="4" cols="80">-d /Users/enu/aaltodsg/instans/tests/input/exists -r simple.rq --input=simple.trig --select-output-output=simple-output.csv</textarea>
 </div>
 <div>
   <button id="initializeInstans" type="button">Initialize INSTANS</button>
@@ -34,5 +85,8 @@
   <button id="getDot" type="button">Get DOT</button>
   <button id="runInstans" type="button">Run INSTANS</button>
 </div>
-<div id="output"></div>
+<div class="boxWrap clearfix">
+<div class="box" id="ops"></div>
+<div class="box" id="log"></div>
+</div>
 <div id="graph"></div>
