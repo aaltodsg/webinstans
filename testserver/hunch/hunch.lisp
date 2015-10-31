@@ -11,6 +11,11 @@
     (let ((*standard-output* str))
       (describe object))))
 
+(defmacro loggingmsgs (&body body)
+  `(with-open-file (str "log" :direction :output :if-exists :append :if-does-not-exist :create)
+     (let ((instans::*stream-open-close-report-output* str))
+       ,@body)))
+
 (defclass chat-room (hunchensocket:websocket-resource)
   ((name :initarg :name :initform (error "Name this room!") :reader name)
    (instans :initform nil :accessor chat-room-instans))
@@ -59,7 +64,7 @@
 	  (logmsg "text-message-received: command ~S, args ~S" command args)
 	  (cond ((equal command "parameters")
 		 (logmsg "got command parameters")
-		 (setf (chat-room-instans room) (instans::main2 args :exit-after-processing-args-p nil :execute-immediately-p nil)))
+		 (setf (chat-room-instans room) (instans::main args :exit-after-processing-args-p nil :execute-immediately-p nil)))
 		((equal command "dot")
 		 (logmsg "got command dot")
 		 (logdescribe room)
@@ -71,13 +76,16 @@
 		       (instans::shell-cmd "dot" "-Tsvg" "-O" dot-file-name)
 		       (let ((svg (instans::file-contents-to-string (format nil "~A.svg" dot-file-name))))
 			 (logmsg "text-message-received: broadcast dot-result ~A" svg)
-		       (broadcast room "dot-result ~A" svg))))))
-		;; ((equal command "run")
-		;;  (logmsg "got command run")
-		;;  (logdescribe room)
-		;;  (let ((instans (chat-room-instans room)))
-		;;    (when instans
-		;;      (
+			 ;; (delete-file svg)
+			 ;; (delete-file dot-file-name)
+			 (broadcast room "dot-result ~A" svg))))))
+		((equal command "run")
+		 (logmsg "got command run")
+		 ;; (logdescribe room)
+		 (let ((instans (chat-room-instans room)))
+		   (when instans
+		     (loggingmsgs
+		       (instans::main "--execute" :instans instans :exit-after-processing-args-p t :execute-immediately-p t)))))
 		(t (broadcast room "error: command ~A unknown" command)))))
     (t (e) (logmsg "text-message-received got an error ~S" e))))
 

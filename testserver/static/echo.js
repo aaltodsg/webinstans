@@ -43,7 +43,7 @@ function onMessage(evt)
     if (cmd == "dot-result") {
 	//         writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
         var graph = data.substring(i);
-        // writeToScreen('<span style="color: blue;">GRAPH: ' + graph +'</span>');
+        writeToScreen('<span style="color: blue;">GRAPH: ' + graph +'</span>');
         // document.body.innerHTML += Viz(graph);
 	$('#graph').innerHTML = graph;
         // document.body.innerHTML += graph;
@@ -70,7 +70,7 @@ function writeToScreen(message)
     output.appendChild(pre);
 }
 
-// -r /Users/enu/aaltodsg/instans/tests/input/exists/simple.rq --input=/Users/enu/aaltodsg/instans/tests/input/exists/simple.trig
+// -r /Users/enu/aaltodsg/instans/tests/input/exists/simple.rq --input=/Users/enu/aaltodsg/instans/tests/input/exists/simple.trig --construct-output=/Users/enu/aaltodsg/webinstans/testserver/hunch/simple-output.ttl
 
 function launchInstans()
 {
@@ -95,3 +95,5 @@ function getDot() {
 }
 
 window.addEventListener("load", init, false);
+
+
