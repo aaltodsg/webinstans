@@ -4,6 +4,7 @@ var log;
 var graph;
 var websocket;
 var isRunning = false;
+var currentNode = null;
 
 function init()
 {
@@ -39,10 +40,11 @@ function onMessage(evt)
     var data = evt.data;
     var i = data.indexOf(" ");
     var cmd = data.substring(0, i);
+    var args = data.substring(i+1);
     writeToLog('<span style="color: blue;">CMD: ' + cmd+'</span>');
     if (cmd == "dot-result") {
 	//         writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
-        var graph = data.substring(i);
+        var graph = args;
         // writeToLog('<span style="color: blue;">GRAPH: </span>');
         // document.body.innerHTML += Viz(graph);
 	$('#graph').html(graph);
@@ -57,7 +59,22 @@ function onMessage(evt)
         $('#graph' ).scrollLeft( 0 );
 	$('#graph').css("visibility", "visible");
     } else if (cmd == "enter") {
-	$('#ops').append('<div class="op enter"></div>').find('div:last-child').text(data);
+	var j = args.indexOf(" ");
+	var operation = args.substring(0, j);
+	var rest = args.substring(j+1);
+	$('#ops').append('<div class="op enter"></div>').find('div:last-child').text(data).click(function () {
+	    if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
+		operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
+		var k = rest.indexOf(" ");
+		var node = rest.substring(0, k);
+		// alert('Enter ' + operation + ' in node ' + node);
+		if (currentNode) {
+		    $('#' + currentNode + ' ellipse').css('stroke','#000000');
+		}
+		currentNode = node;
+		$('#' + node + ' ellipse').css('stroke','#aa0000');
+	    }
+	});
     } else if (cmd == "exit") {
 	$('#ops').append('<div class="op exit"></div>').find('div:last-child').text(data);
     }

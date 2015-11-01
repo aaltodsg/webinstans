@@ -81,7 +81,7 @@
 
 (defmethod instans::add-token :around ((node instans::node) token &optional stack)
   (declare (ignorable stack))
-  (let ((node-name (instans::node-name node))
+  (let ((node-name (downcase-and-dash-to-underline (instans::node-name node)))
 	(args-as-json (tracing-token-to-string node token)))
     (when *room*
       (logmsg "enter add-token ~A ~A" node-name args-as-json)
@@ -90,6 +90,12 @@
       (when *room*
 	(logmsg "exit add-token ~A ~A" node-name args-as-json)
 	(broadcast *room* "exit add-token ~A ~A" node-name args-as-json)))))
+
+(defun downcase-and-dash-to-underline (string)
+  (coerce (loop for ch in (coerce string 'list)
+		when (char= ch #\-) collect #\_
+		else collect (char-downcase ch))
+	  'string))
 
 (defgeneric tracing-token-to-string (node token)
   (:method ((node instans::triple-pattern-node) values)
