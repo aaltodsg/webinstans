@@ -1,0 +1,82 @@
+/* Clearfix */
+.clearfix:before, .clearfix:after { content: ""; display: table; }
+.clearfix:after { clear: both; }
+.clearfix { *zoom: 1; }
+
+#buttons {
+    width: 100%;
+    margin: 0 auto;
+}
+#player {
+    /* border: 3px solid #666; */
+    width: 20%;
+    float: left;
+    margin: 5px;
+    padding: 5px;
+    border: 0.5px solid #666;
+    position: relative;
+    top: 50%;
+    overflow: auto;
+}
+#commands {
+    /* border: 3px solid #666; */
+    width: 45%;
+    float: left;
+    margin: 5px;
+    padding: 5px;
+    position: relative;
+    top: 50%;
+  /* transform: translateY(-50%); */
+    overflow: auto;
+}
+#opsLog{
+    width: 100%;
+    margin: 0 auto;
+}
+#ops {
+    width: 75%;
+    float: left;
+    /* background: #ccc none repeat scroll 0 0; */
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    height: 200px;
+    font-size: smaller;
+    position: relative;
+    overflow: auto;
+}
+#log {
+    width: 20%;
+    float: left;
+    /* background: #ccc none repeat scroll 0 0; */
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    height: 200px;
+    position: relative;
+    overflow: auto;
+}
+#graph {
+    /* background: #ccc none repeat scroll 0 0; */
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    position: relative;
+    <!-- overflow: auto; -->
+			 visibility: hidden;
+}
+
+.playerCommand {
+    margin: 5px;
+}
+
+.commandButton {
+}
+
+/* currentNode { */
+/*     stroke: #aa0000; */
+/* } */
+/* enteredNode { */
+/* } */
+/* exitedNode { */
+/* } */

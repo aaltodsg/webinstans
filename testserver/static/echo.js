@@ -5,12 +5,47 @@ var graph;
 var websocket;
 var isRunning = false;
 var currentNode = null;
+var nodePropNames = ['fill', 'stroke'];
+var savedCss = {};
+var currentOp = null;
 
 function init()
 {
     log = document.getElementById("log");
     graph = document.getElementById("graph");
     testWebSocket();
+    $('#rewindButton').click(function() {
+	makeCurrentOp(0);
+    });
+    $('#stepBackButton').click(function() {
+	if (currentOp) {
+	    makeCurrentOp(currentOp - 1);
+	}
+    });
+    $('#stopButton').click(function() {
+    });
+    $('#playButton').click(function() {
+    });
+    $('#pauseButton').click(function() {
+    });
+    $('#stepForwardButton').click(function() {
+	if (currentOp < $('#ops div').length - 1) {
+	    makeCurrentOp(currentOp + 1);
+	}
+    });
+    $('#endButton').click(function() {
+	makeCurrentOp($('#ops div').length - 1);
+    });
+    $('#initializeInstans').click(function() {
+	launchInstans();
+    });  
+    $('#getDot').click(function() {
+	getDot();
+    }); 
+    $('#runInstans').click(function() {
+	runInstans();
+    });
+    $( document ).tooltip();
 }
 
 function testWebSocket()
@@ -31,6 +66,10 @@ function onOpen(evt)
 function onClose(evt)
 {
     writeToLog("DISCONNECTED");
+}
+
+function currentNodeCss() {
+    return {stroke: '#aa0000', fill: '#bb6666'};
 }
 
 function onMessage(evt)
@@ -58,25 +97,54 @@ function onMessage(evt)
         $('#graph' ).scrollTop( 0 );
         $('#graph' ).scrollLeft( 0 );
 	$('#graph').css("visibility", "visible");
-    } else if (cmd == "enter") {
-	var j = args.indexOf(" ");
-	var operation = args.substring(0, j);
-	var rest = args.substring(j+1);
-	$('#ops').append('<div class="op enter"></div>').find('div:last-child').text(data).click(function () {
-	    if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
-		operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
-		var k = rest.indexOf(" ");
-		var node = rest.substring(0, k);
-		// alert('Enter ' + operation + ' in node ' + node);
-		if (currentNode) {
-		    $('#' + currentNode + ' ellipse').css('stroke','#000000');
-		}
-		currentNode = node;
-		$('#' + node + ' ellipse').css('stroke','#aa0000');
-	    }
+    } else if (cmd == "enter" || cmd == "exit") {
+	var c = $('#ops div').length;
+	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').text(data).click(function () {
+	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
+	    makeCurrentOp(c);
 	});
-    } else if (cmd == "exit") {
-	$('#ops').append('<div class="op exit"></div>').find('div:last-child').text(data);
+	// var j = args.indexOf(" ");
+	// var operation = args.substring(0, j);
+	// var rest = args.substring(j+1);
+	// $('#ops').append('<div class="trace"></div>').find('div:last-child').text(data).click(function () {
+	//     if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
+	// 	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
+	// 	var k = rest.indexOf(" ");
+	// 	var node = rest.substring(0, k);
+	// 	// alert(cmd + ' ' + operation + ' in node ' + node);
+	// 	if (currentNode) {
+	// 	    $('#' + currentNode + ' ellipse').css(savedCss[currentNode]);
+	// 	}
+	// 	currentNode = node;
+	// 	savedCss[currentNode] = $('#' + currentNode + ' ellipse').css(nodePropNames);
+	// 	$('#' + currentNode + ' ellipse').css(currentNodeCss());
+	//     }
+	// });
+    }
+}
+
+function makeCurrentOp(n) {
+    currentOp = n;
+    var elem = $('#traceOp'+n);
+    var data = elem.text();
+    // alert('called makeCurrentOp('+n+ '), data=' + data);
+    var i = data.indexOf(" ");
+    var cmd = data.substring(0, i);
+    var args = data.substring(i+1);
+    var j = args.indexOf(" ");
+    var operation = args.substring(0, j);
+    var rest = args.substring(j+1);
+    if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
+	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
+	var k = rest.indexOf(" ");
+	var node = rest.substring(0, k);
+	// alert(cmd + ' ' + operation + ' in node ' + node);
+	if (currentNode) {
+	    $('#' + currentNode + ' ellipse').css(savedCss[currentNode]);
+	}
+	currentNode = node;
+	savedCss[currentNode] = $('#' + currentNode + ' ellipse').css(nodePropNames);
+	$('#' + currentNode + ' ellipse').css(currentNodeCss());
     }
 }
 
@@ -93,7 +161,7 @@ function doSend(message)
 
 function writeToLog(message)
 {
-    var pre = document.createElement("p");
+    var pre = document.createElement("div");
     pre.style.wordWrap = "break-word";
     pre.innerHTML = message;
     log.appendChild(pre);
@@ -122,5 +190,3 @@ function runInstans()
 function getDot() {
     websocket.send('dot');
 }
-
-window.addEventListener("load", init, false);

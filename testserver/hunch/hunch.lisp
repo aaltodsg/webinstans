@@ -91,6 +91,30 @@
 	(logmsg "exit add-token ~A ~A" node-name args-as-json)
 	(broadcast *room* "exit add-token ~A ~A" node-name args-as-json)))))
 
+(defmethod instans::add-alpha-token :around ((node instans::join-node) token &optional stack)
+  (declare (ignorable stack))
+  (let ((node-name (downcase-and-dash-to-underline (instans::node-name node)))
+	(args-as-json (tracing-token-to-string node token)))
+    (when *room*
+      (logmsg "enter add-alpha-token ~A ~A" node-name args-as-json)
+      (broadcast *room* "enter add-alpha-token ~A ~A" node-name args-as-json))
+    (multiple-value-prog1 (call-next-method)
+      (when *room*
+	(logmsg "exit add-alpha-token ~A ~A" node-name args-as-json)
+	(broadcast *room* "exit add-alpha-token ~A ~A" node-name args-as-json)))))
+
+(defmethod instans::add-beta-token :around ((node instans::join-node) token &optional stack)
+  (declare (ignorable stack))
+  (let ((node-name (downcase-and-dash-to-underline (instans::node-name node)))
+	(args-as-json (tracing-token-to-string node token)))
+    (when *room*
+      (logmsg "enter add-beta-token ~A ~A" node-name args-as-json)
+      (broadcast *room* "enter add-beta-token ~A ~A" node-name args-as-json))
+    (multiple-value-prog1 (call-next-method)
+      (when *room*
+	(logmsg "exit add-beta-token ~A ~A" node-name args-as-json)
+	(broadcast *room* "exit add-beta-token ~A ~A" node-name args-as-json)))))
+
 (defun downcase-and-dash-to-underline (string)
   (coerce (loop for ch in (coerce string 'list)
 		when (char= ch #\-) collect #\_
