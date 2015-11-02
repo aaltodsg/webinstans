@@ -3,3 +3,4 @@
 - Show store sizes/contents, size/content changes
 - Variable names: ?x instead of ?0. How to detect, if the same variable name is used for different things? How to show this in output?
 - Show variable bindings at different points; number of different bindings, actual values
+- Make showing of checksums optional.
