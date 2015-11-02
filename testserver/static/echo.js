@@ -8,6 +8,8 @@ var currentNode = null;
 var nodePropNames = ['fill', 'stroke'];
 var savedCss = {};
 var currentOp = null;
+var traceLevel = 0;
+var traceLevelIndent = 2;
 
 function init()
 {
@@ -68,8 +70,12 @@ function onClose(evt)
     writeToLog("DISCONNECTED");
 }
 
-function currentNodeCss() {
-    return {stroke: '#aa0000', fill: '#bb6666'};
+function currentNodeCss(command, operation) {
+    if (command == "enter") {
+	return {stroke: '#aa0000', fill: '#bb6666'};
+    } else {
+	return {stroke: '#00aa00', fill: '#66bb66'};
+    }
 }
 
 function onMessage(evt)
@@ -99,7 +105,15 @@ function onMessage(evt)
 	$('#graph').css("visibility", "visible");
     } else if (cmd == "enter" || cmd == "exit") {
 	var c = $('#ops div').length;
-	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').text(data).click(function () {
+	var indent = null;
+	if (cmd == "enter") {
+	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
+	    traceLevel = traceLevel + 1;
+	} else {
+	    traceLevel = traceLevel - 1;
+	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
+	}
+	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').text(data).prepend(indent).click(function () {
 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
 	    makeCurrentOp(c);
 	});
@@ -124,8 +138,13 @@ function onMessage(evt)
 }
 
 function makeCurrentOp(n) {
+    if (currentOp != null) {
+	$('#traceOp'+currentOp).removeClass('currentOp');
+    }
     currentOp = n;
     var elem = $('#traceOp'+n);
+    elem.addClass('currentOp');
+    elem[0].scrollIntoView({behavior: "smooth", block: "end"});
     var data = elem.text();
     // alert('called makeCurrentOp('+n+ '), data=' + data);
     var i = data.indexOf(" ");
@@ -144,7 +163,7 @@ function makeCurrentOp(n) {
 	}
 	currentNode = node;
 	savedCss[currentNode] = $('#' + currentNode + ' ellipse').css(nodePropNames);
-	$('#' + currentNode + ' ellipse').css(currentNodeCss());
+	$('#' + currentNode + ' ellipse').css(currentNodeCss(cmd, operation));
     }
 }
 

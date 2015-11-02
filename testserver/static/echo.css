@@ -41,7 +41,6 @@
     margin: 5px;
     padding: 5px;
     height: 200px;
-    font-size: smaller;
     position: relative;
     overflow: auto;
 }
@@ -64,6 +63,16 @@
     position: relative;
     <!-- overflow: auto; -->
 			 visibility: hidden;
+}
+
+.trace {
+    font-family: monospace;
+    font-size: smaller;
+}
+
+.currentOp {
+    background: #00aaff;
+    font-weight: bold;
 }
 
 .playerCommand {

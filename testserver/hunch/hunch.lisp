@@ -67,17 +67,18 @@
 (defvar *room* nil)
 
 (defmethod instans::rete-add :around ((this instans::instans) subj pred obj graph)
-  (let ((s (instans::sparql-value-to-string subj))
-	(p (instans::sparql-value-to-string pred))
-	(o (instans::sparql-value-to-string obj))
-	(g (instans::sparql-value-to-string graph)))
+  (let* ((s (instans::sparql-value-to-string subj))
+	 (p (instans::sparql-value-to-string pred))
+	 (o (instans::sparql-value-to-string obj))
+	 (g (if (null graph) "Default" (instans::sparql-value-to-string graph)))
+	 (input-name (instans::sparql-value-to-string (instans::instans-input-processor-name instans::*current-input-processor*))))
     (when *room*
-      (logmsg "enter rete-add ~A ~A ~A ~A" s p o g)
-      (broadcast *room* "enter rete-add ~A ~A ~A ~A" s p o g))
+      (logmsg "enter rete-add ~A ~A ~A ~A ~A" input-name s p o g)
+      (broadcast *room* "enter rete-add ~A ~A ~A ~A ~A" input-name s p o g))
     (multiple-value-prog1 (call-next-method)
       (when *room*
-	(logmsg "exit rete-add ~A ~A ~A ~A" s p o g)
-	(broadcast *room* "exit rete-add ~A ~A ~A ~A" s p o g)))))
+	(logmsg "exit rete-add ~A ~A ~A ~A ~A" input-name s p o g)
+	(broadcast *room* "exit rete-add ~A ~A ~A ~A ~A" input-name s p o g)))))
 
 (defmethod instans::add-token :around ((node instans::node) token &optional stack)
   (declare (ignorable stack))

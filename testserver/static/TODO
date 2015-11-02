@@ -1,0 +1,5 @@
+- Change the operation so that it first runs the whole system, then shows graph, number of operations and status (success, failure)
+- Prefixes. Show in a pane. Add trace command that shows a change of prefixes. Encode all output using prefixes.
+- Show store sizes/contents, size/content changes
+- Variable names: ?x instead of ?0. How to detect, if the same variable name is used for different things? How to show this in output?
+- Show variable bindings at different points; number of different bindings, actual values
