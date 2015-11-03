@@ -116,7 +116,8 @@ function onMessage(evt)
 	    traceLevel = traceLevel - 1;
 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
 	}
-	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').text(data).prepend(indent).click(function () {
+	var content = callToElements(cmd, args);
+	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').text(content).prepend(indent).click(function () {
 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
 	    makeCurrentOp(c);
 	});
@@ -132,6 +133,32 @@ function onMessage(evt)
 	}
 	makeCurrentOp(0);
     }
+}
+
+function span(cls, txt) {
+    return '<span class="' + cls + '">' + txt + '</span>';
+}
+
+function callToElements(cmd, args) {
+    var j = args.indexOf(" ");
+    var operation = args.substring(0, j);
+    var params = args.substring(j+1);
+    return span("cmd", cmd) + span("function", operation) + paramsToElements(params);
+}
+
+function paramsToElements(params) {
+    // alert('paramsToElements ' + params);
+    var paramList = jQuery.parseJSON(params);
+    // alert(Object.keys(paramList));
+    var result = "";
+    for (var i in paramList) {
+	var param = paramList[i];
+	// alert(param);
+	var type = param["type"];
+	var value = param["value"];
+	result = result + span(type, value);
+    }
+    return result;
 }
 
 function makeCurrentOp(n) {

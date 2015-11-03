@@ -39,7 +39,7 @@
     flex-direction: column;
 }
 #log {
-    display: none;
+    /* display: none; */
     width: 20%;
     float: left;
     /* background: #ccc none repeat scroll 0 0; */

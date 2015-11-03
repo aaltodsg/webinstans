@@ -66,55 +66,36 @@
 
 (defvar *room* nil)
 
-(defmethod instans::rete-add :around ((this instans::instans) subj pred obj graph)
-  (let* ((s (instans::sparql-value-to-string subj))
-	 (p (instans::sparql-value-to-string pred))
-	 (o (instans::sparql-value-to-string obj))
-	 (g (if (null graph) "Default" (instans::sparql-value-to-string graph)))
-	 (input-name (instans::sparql-value-to-string (instans::instans-input-processor-name instans::*current-input-processor*))))
-    (when *room*
-      (logmsg "enter rete-add ~A ~A ~A ~A ~A" input-name s p o g)
-      (broadcast *room* "enter rete-add ~A ~A ~A ~A ~A" input-name s p o g))
-    (multiple-value-prog1 (call-next-method)
-      (when *room*
-	(logmsg "exit rete-add ~A ~A ~A ~A ~A" input-name s p o g)
-	(broadcast *room* "exit rete-add ~A ~A ~A ~A ~A" input-name s p o g)))))
+(defun json-typed-value (type value)
+  (format nil "{ \"type\": \"~A\", \"value\": ~A}" type value))
+  
 
-(defmethod instans::add-token :around ((node instans::node) token &optional stack)
-  (declare (ignorable stack))
-  (let ((node-name (downcase-and-dash-to-underline (instans::node-name node)))
-	(args-as-json (tracing-token-to-string node token)))
-    (when *room*
-      (logmsg "enter add-token ~A ~A" node-name args-as-json)
-      (broadcast *room* "enter add-token ~A ~A" node-name args-as-json))
-    (multiple-value-prog1 (call-next-method)
-      (when *room*
-	(logmsg "exit add-token ~A ~A" node-name args-as-json)
-	(broadcast *room* "exit add-token ~A ~A" node-name args-as-json)))))
+(defun sparql-value-to-json (x)
+  (let ((type (cond ((typep x 'instans::xsd-string-value) "string")
+		    ((typep x 'instans::xsd-boolean-value) "boolean")
+		    ((typep x 'instans::xsd-integer-value) "integer")
+		    ((typep x 'instans::xsd-decimal-value) "decimal")
+		    ((typep x 'instans::xsd-double-value) "double")
+		    ((typep x 'instans::xsd-datetime-value) "datetime")
+		    ((instans::rdf-literal-p x) "literal")
+		    ((instans::rdf-iri-p x) "iri")
+		    ((instans::rdf-blank-node-p x) "blank")
+		    ((instans::sparql-unbound-p x) "unbound")
+		    ((instans::nodep x) "node")
+		    (t "null")))
+	(value (cond ((instans::nodep x) (downcase-and-dash-to-underline (instans::node-name x)))
+		     ((or (instans::sparql-var-p x) (instans::rdf-iri-p x)) (format nil "\"~A\"" (instans::sparql-value-to-string x)))
+		     (t (instans::sparql-value-to-string x)))))
+    (json-typed-value type value)))
 
-(defmethod instans::add-alpha-token :around ((node instans::join-node) token &optional stack)
-  (declare (ignorable stack))
-  (let ((node-name (downcase-and-dash-to-underline (instans::node-name node)))
-	(args-as-json (tracing-token-to-string node token)))
-    (when *room*
-      (logmsg "enter add-alpha-token ~A ~A" node-name args-as-json)
-      (broadcast *room* "enter add-alpha-token ~A ~A" node-name args-as-json))
-    (multiple-value-prog1 (call-next-method)
-      (when *room*
-	(logmsg "exit add-alpha-token ~A ~A" node-name args-as-json)
-	(broadcast *room* "exit add-alpha-token ~A ~A" node-name args-as-json)))))
+(defun sparql-var-to-json (x)
+  (json-typed-value "var" (format nil "\"~A\"" (instans::uniquely-named-object-name x))))
 
-(defmethod instans::add-beta-token :around ((node instans::join-node) token &optional stack)
-  (declare (ignorable stack))
-  (let ((node-name (downcase-and-dash-to-underline (instans::node-name node)))
-	(args-as-json (tracing-token-to-string node token)))
-    (when *room*
-      (logmsg "enter add-beta-token ~A ~A" node-name args-as-json)
-      (broadcast *room* "enter add-beta-token ~A ~A" node-name args-as-json))
-    (multiple-value-prog1 (call-next-method)
-      (when *room*
-	(logmsg "exit add-beta-token ~A ~A" node-name args-as-json)
-	(broadcast *room* "exit add-beta-token ~A ~A" node-name args-as-json)))))
+(defun checksum-to-json (x)
+  (json-typed-value "checksum" (second x)))
+
+(defun binding-to-json (x)
+  (format nil "{ \"type\": \"binding\", \"var\": ~A, \"value\": ~A}" (sparql-var-to-json (first x)) (sparql-value-to-json (second x))))
 
 (defun downcase-and-dash-to-underline (string)
   (coerce (loop for ch in (coerce string 'list)
@@ -122,26 +103,74 @@
 		else collect (char-downcase ch))
 	  'string))
 
-(defgeneric tracing-token-to-string (node token)
+
+(defun list-to-json (list)
+  (format nil "[~{~A~^, ~}]" (mapcar #'sparql-value-to-json list)))
+
+(defgeneric token-to-json (node token)
   (:method ((node instans::triple-pattern-node) values)
     (declare (ignorable node))
-    (let ((graph (car values))
-	  (args (cdr values)))
-      (format nil "[~A, ~{~A~^, ~}]" (if (null graph) "Default" (instans::sparql-value-to-string graph))
-	      (mapcar #'instans::sparql-value-to-string args))))
+    (list-to-json values))
   (:method ((node instans::node) token)
     (declare (ignorable node))
-    (format nil "[~{~A~^, ~}]" (mapcar #'(lambda (x)
-					   (cond ((and (consp x) (= 2 (length x)))
-						  (format nil "[~A, ~A]"
-							  (cond ((null (first x)) "Checksum")
-								((instans::sparql-var-p (first x))
-								 (instans::uniquely-named-object-name (first x)))
-								(t
-								 (first x)))
-							  (instans::sparql-value-to-string (second x))))
-						 (t x)))
-				       token))))
+    (json-typed-value "token" (format nil "[~{~A~^, ~}]"
+				      (mapcar #'(lambda (x)
+						  (cond ((and (consp x) (= 2 (length x)))
+							 (cond ((null (first x)) (checksum-to-json x))
+							       (t (binding-to-json x))))
+							(t x)))
+					      token)))))
+
+;; (defun opname-to-json (x)
+;;   (format nil "{ \"type\": \"function\", \"value\": \"~A\"}" x))
+
+(defmethod instans::rete-add :around ((this instans::instans) subj pred obj graph)
+  (let* ((function "rete-add")
+	 (args (mapcar #'sparql-value-to-json (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj graph)))
+	 (call (format nil "~A [~{~A~^, ~}]" function args)))
+    (when *room*
+      (logmsg "enter ~A" call)
+      (broadcast *room* "enter ~A" call))
+    (multiple-value-prog1 (call-next-method)
+      (when *room*
+	(logmsg "exit ~A" call)
+	(broadcast *room* "exit ~A" call)))))
+
+(defmethod instans::add-token :around ((node instans::node) token &optional stack)
+  (declare (ignorable stack))
+  (let ((node-name (node-name-to-json node))
+	(args-as-json (token-to-json node token)))
+    (when *room*
+      (logmsg "enter add-token [~A, ~A]" node-name args-as-json)
+      (broadcast *room* "enter add-token [~A, ~A]" node-name args-as-json))
+    (multiple-value-prog1 (call-next-method)
+      (when *room*
+	(logmsg "exit add-token [~A, ~A]" node-name args-as-json)
+	(broadcast *room* "exit add-token [~A, ~A]" node-name args-as-json)))))
+
+(defmethod instans::add-alpha-token :around ((node instans::join-node) token &optional stack)
+  (declare (ignorable stack))
+  (let ((node-name (node-name-to-json node))
+	(args-as-json (token-to-json node token)))
+    (when *room*
+      (logmsg "enter add-alpha-token [~A, ~A]" node-name args-as-json)
+      (broadcast *room* "enter add-alpha-token [~A, ~A]" node-name args-as-json))
+    (multiple-value-prog1 (call-next-method)
+      (when *room*
+	(logmsg "exit add-alpha-token [~A, ~A]" node-name args-as-json)
+	(broadcast *room* "exit add-alpha-token [~A, ~A]" node-name args-as-json)))))
+
+(defmethod instans::add-beta-token :around ((node instans::join-node) token &optional stack)
+  (declare (ignorable stack))
+  (let ((node-name (node-name-to-json node))
+	(args-as-json (token-to-json node token)))
+    (when *room*
+      (logmsg "enter add-beta-token [~A, ~A]" node-name args-as-json)
+      (broadcast *room* "enter add-beta-token [~A, ~A]" node-name args-as-json))
+    (multiple-value-prog1 (call-next-method)
+      (when *room*
+	(logmsg "exit add-beta-token [~A, ~A]" node-name args-as-json)
+	(broadcast *room* "exit add-beta-token [~A, ~A]" node-name args-as-json)))))
 
 (defun get-dot (room)
   (logmsg "got command dot")
