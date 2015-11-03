@@ -17,29 +17,35 @@
    init();
  });  
 </script> 
-<h2>Initialize</h2>
+<h2>Web INSTANS</h2>
 <div>
   <p><span>Parameters: </span></p>
-  <textarea name="parameters" id="parameters" rows="4" cols="80">-d /Users/enu/aaltodsg/instans/tests/input/exists -r simple.rq --input=simple.trig --select-output-output=simple-output.csv</textarea>
+  <textarea name="parameters" id="parameters" rows="2" cols="140">-d /Users/enu/aaltodsg/instans/tests/input/exists -r simple.rq --input=simple.trig --select-output-output=simple-output.csv</textarea>
 </div>
-<div id="buttons" class="clearfix">
+  <!-- <div id="commands"> -->
+    <button class="commandButton" id="initializeInstans" type="button">Run INSTANS</button>
+    <!-- <button class="commandButton" id="getDot" type="button">Get DOT</button> -->
+    <!-- <button class="commandButton" id="runInstans" type="button">Run INSTANS</button> -->
+  <!-- </div> -->
+<div id="execution">
+<div id="executionInfo">
+<!-- <div id="executionStatus"></div> -->
+<!-- <div id="numberOfOps"></div> -->
+</div>
+<!-- <div id="buttons" class="clearfix"> -->
   <div id="player">
     <i id="rewindButton" class="fa fa-fast-backward playerCommand" style="font-size:24px"></i>
     <i id="stepBackButton" class="fa fa-step-backward playerCommand" style="font-size:24px"></i>
     <i id="stopButton" class="fa fa-stop playerCommand" style="font-size:24px"></i>
     <i id="playButton" class="fa fa-play playerCommand" style="font-size:24px"></i>
     <i id="pauseButton" class="fa fa-pause playerCommand" style="font-size:24px"></i>
-    <i id="stepForwardButton" class="fa fa-fast-forward playerCommand" style="font-size:24px"></i>
-    <i id="endButton" class="fa fa-step-forward playerCommand" style="font-size:24px"></i>
+    <i id="stepForwardButton" class="fa fa-step-forward playerCommand" style="font-size:24px"></i>
+    <i id="endButton" class="fa fa-fast-forward playerCommand" style="font-size:24px"></i>
   </div>
-  <div id="commands">
-    <button class="commandButton" id="initializeInstans" type="button">Initialize INSTANS</button>
-    <button class="commandButton" id="getDot" type="button">Get DOT</button>
-    <button class="commandButton" id="runInstans" type="button">Run INSTANS</button>
-  </div>
-</div>
-<div id="opsLog" class="clearfix">
+<!-- </div> -->
+<!-- <div id="opsLog" class="clearfix"> -->
 <div id="ops"></div>
+<!-- </div> -->
 <div id="log"></div>
-</div>
 <div id="graph"></div>
+</div>

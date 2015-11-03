@@ -143,6 +143,29 @@
 						 (t x)))
 				       token))))
 
+(defun get-dot (room)
+  (logmsg "got command dot")
+  ;; (logdescribe room)
+  (let ((instans (chat-room-instans room)))
+    (when instans
+      (let ((dot-file-name (instans::create-temp-file-name)))
+	(with-open-file (stream dot-file-name :direction :output :if-exists :error)
+	  (instans::print-dot instans :stream stream :show-vars-p nil :html-labels-p nil))
+	(instans::shell-cmd "dot" "-Tsvg" "-O" dot-file-name)
+	(let ((svg (instans::file-contents-to-string (format nil "~A.svg" dot-file-name))))
+	  (logmsg "text-message-received: dot-result ~A" (message-sample svg))
+	  ;; (delete-file svg)
+	  ;; (delete-file dot-file-name)
+	  (broadcast room "dot-result ~A" svg))))))
+
+;; ((equal command "run")
+;;  (logmsg "got command run")
+;;  ;; (logdescribe room)
+;;  (let ((instans (chat-room-instans room)))
+;;    (when instans
+;;      (loggingmsgs
+;;        (instans::main "--execute" :instans instans :exit-after-processing-args-p t :execute-immediately-p t)))))
+
 (defmethod hunchensocket:text-message-received ((room chat-room) user message)
   (handler-case
       (let ((*room* room))
@@ -153,30 +176,23 @@
 	  (logmsg "text-message-received: command ~S, args ~S" command args)
 	  (cond ((equal command "parameters")
 		 (logmsg "got command parameters")
-		 (setf (chat-room-instans room) (instans::main args :exit-after-processing-args-p nil :execute-immediately-p nil)))
-		((equal command "dot")
-		 (logmsg "got command dot")
-		 ;; (logdescribe room)
-		 (let ((instans (chat-room-instans room)))
-		   (when instans
-		     (let ((dot-file-name (instans::create-temp-file-name)))
-		       (with-open-file (stream dot-file-name :direction :output :if-exists :error)
-			 (instans::print-dot instans :stream stream :show-vars-p nil :html-labels-p nil))
-		       (instans::shell-cmd "dot" "-Tsvg" "-O" dot-file-name)
-		       (let ((svg (instans::file-contents-to-string (format nil "~A.svg" dot-file-name))))
-			 (logmsg "text-message-received: dot-result ~A" (message-sample svg))
-			 ;; (delete-file svg)
-			 ;; (delete-file dot-file-name)
-			 (broadcast room "dot-result ~A" svg))))))
-		((equal command "run")
-		 (logmsg "got command run")
-		 ;; (logdescribe room)
-		 (let ((instans (chat-room-instans room)))
-		   (when instans
-		     (loggingmsgs
-		       (instans::main "--execute" :instans instans :exit-after-processing-args-p t :execute-immediately-p t)))))
-		(t (broadcast room "error: command ~A unknown" command)))))
-    (t (e) (logmsg "text-message-received got an error ~S" e))))
+					;		 (setf (chat-room-instans room) (instans::main args :exit-after-processing-args-p nil :execute-immediately-p nil))
+		 (handler-case
+		     (progn
+		       (setf (chat-room-instans room) (instans::main args))
+		       (get-dot room)
+		       (logmsg "Execution succeeded")
+		       (broadcast room "end succeeded"))
+		   (t (e)
+		     (logmsg "instans::main error ~S" e)
+		     (get-dot room)
+		     (broadcast room "end failed ~S" e))))
+		;; ((equal command "dot")
+		;;  (get-dot room))
+		(t (broadcast room "error unknown command ~A" command)))))
+    (t (e)
+      (logmsg "text-message-received got an error ~S" e)
+      (broadcast room "error text-message-received ~S" e))))
 
 
 

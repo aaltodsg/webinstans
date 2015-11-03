@@ -103,7 +103,10 @@ function onMessage(evt)
         $('#graph' ).scrollTop( 0 );
         $('#graph' ).scrollLeft( 0 );
 	$('#graph').css("visibility", "visible");
+	$('#graph').css("display", "block");
     } else if (cmd == "enter" || cmd == "exit") {
+	$('#ops').css("visibility", "visible");
+	$('#ops').css("display", "block");
 	var c = $('#ops div').length;
 	var indent = null;
 	if (cmd == "enter") {
@@ -117,23 +120,17 @@ function onMessage(evt)
 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
 	    makeCurrentOp(c);
 	});
-	// var j = args.indexOf(" ");
-	// var operation = args.substring(0, j);
-	// var rest = args.substring(j+1);
-	// $('#ops').append('<div class="trace"></div>').find('div:last-child').text(data).click(function () {
-	//     if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
-	// 	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
-	// 	var k = rest.indexOf(" ");
-	// 	var node = rest.substring(0, k);
-	// 	// alert(cmd + ' ' + operation + ' in node ' + node);
-	// 	if (currentNode) {
-	// 	    $('#' + currentNode + ' ellipse').css(savedCss[currentNode]);
-	// 	}
-	// 	currentNode = node;
-	// 	savedCss[currentNode] = $('#' + currentNode + ' ellipse').css(nodePropNames);
-	// 	$('#' + currentNode + ' ellipse').css(currentNodeCss());
-	//     }
-	// });
+    } else if (cmd == "end") {
+	$('#player').css("visibility", "visible");
+	$('#player').css("display", "block");
+	var j = args.indexOf(" ");
+	var status = args.substring(0, j);
+	var rest = args.substring(j+1);
+	$('#executionInfo').text('Execution ' + args + '. ' + $('#ops div').length + ' operations');
+	if (status == "failed") {
+	    $('#executionInfo').addClass('executionFailed');
+	}
+	makeCurrentOp(0);
     }
 }
 
@@ -170,6 +167,7 @@ function makeCurrentOp(n) {
 function onError(evt)
 {
     writeToLog('<div style="color: red;">ERROR:</div> ' + evt.data);
+    $('#executionStatus').text("Execution failed");
 }
 
 function doSend(message)
