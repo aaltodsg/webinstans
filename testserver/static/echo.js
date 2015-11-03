@@ -116,8 +116,8 @@ function onMessage(evt)
 	    traceLevel = traceLevel - 1;
 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
 	}
-	var content = callToElements(cmd, args);
-	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').text(content).prepend(indent).click(function () {
+	var content = callToHTML(cmd, args);
+	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
 	    makeCurrentOp(c);
 	});
@@ -139,26 +139,53 @@ function span(cls, txt) {
     return '<span class="' + cls + '">' + txt + '</span>';
 }
 
-function callToElements(cmd, args) {
+function callToHTML(cmd, args) {
     var j = args.indexOf(" ");
     var operation = args.substring(0, j);
     var params = args.substring(j+1);
-    return span("cmd", cmd) + span("function", operation) + paramsToElements(params);
+    var jsonParams = jQuery.parseJSON(params);
+    // alert(jsonParams);
+    return span("cmd", cmd) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, open='(', close=')');
 }
 
-function paramsToElements(params) {
-    // alert('paramsToElements ' + params);
-    var paramList = jQuery.parseJSON(params);
-    // alert(Object.keys(paramList));
-    var result = "";
-    for (var i in paramList) {
-	var param = paramList[i];
-	// alert(param);
-	var type = param["type"];
-	var value = param["value"];
-	result = result + span(type, value);
+function jsonListToHTML(list, open='[', close=']', separator=', ') {
+    var converted = []
+    for (var i in list) {
+	var o = list[i];
+	converted.push(jsonToHTML(o));
     }
+    var result = '<span class="listOpen">' + open + '</span>' + converted.join(separator) + '<span class="listClose">' + close + '</span>';
+    // alert(result);
     return result;
+}
+
+function htmlEncode(string)
+{
+  var elem = document.createElement("div");
+  elem.innerText = elem.textContent = string;
+  string = elem.innerHTML;
+  return string;
+}
+
+function jsonToHTML(o) {
+    if ($.isArray(o)) {
+	return jsonListToHTML(o);
+    } else {
+	var type = o["type"];
+	var value = o["value"];
+	if (type == "iri") {
+	    value = htmlEncode(value);
+	}
+	// alert('type = ' + type + ', value = ' + value);
+	switch (type) {
+	case "binding":
+	    return '<span class="binding"><span class="var">' + jsonToHTML(o["var"]) + ' = ' + jsonToHTML(o["value"]) + '</span>';
+	case "token":
+	    return jsonListToHTML(value);
+	default:
+	    return span(type, value);
+	}
+    }
 }
 
 function makeCurrentOp(n) {

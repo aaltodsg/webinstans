@@ -83,8 +83,9 @@
 		    ((instans::sparql-unbound-p x) "unbound")
 		    ((instans::nodep x) "node")
 		    (t "null")))
-	(value (cond ((instans::nodep x) (downcase-and-dash-to-underline (instans::node-name x)))
-		     ((or (instans::sparql-var-p x) (instans::rdf-iri-p x)) (format nil "\"~A\"" (instans::sparql-value-to-string x)))
+	(value (cond ((instans::nodep x) (format nil "\"~A\"" (downcase-and-dash-to-underline (instans::node-name x))))
+		     ((instans::sparql-var-p x) (format nil "\"~A\"" (instans::sparql-value-to-string x)))
+		     ((instans::rdf-iri-p x) (format nil "\"~A\"" (instans::sparql-value-to-string x)))
 		     (t (instans::sparql-value-to-string x)))))
     (json-typed-value type value)))
 
@@ -138,7 +139,7 @@
 
 (defmethod instans::add-token :around ((node instans::node) token &optional stack)
   (declare (ignorable stack))
-  (let ((node-name (node-name-to-json node))
+  (let ((node-name (sparql-value-to-json node))
 	(args-as-json (token-to-json node token)))
     (when *room*
       (logmsg "enter add-token [~A, ~A]" node-name args-as-json)
@@ -150,7 +151,7 @@
 
 (defmethod instans::add-alpha-token :around ((node instans::join-node) token &optional stack)
   (declare (ignorable stack))
-  (let ((node-name (node-name-to-json node))
+  (let ((node-name (sparql-value-to-json node))
 	(args-as-json (token-to-json node token)))
     (when *room*
       (logmsg "enter add-alpha-token [~A, ~A]" node-name args-as-json)
@@ -162,7 +163,7 @@
 
 (defmethod instans::add-beta-token :around ((node instans::join-node) token &optional stack)
   (declare (ignorable stack))
-  (let ((node-name (node-name-to-json node))
+  (let ((node-name (sparql-value-to-json node))
 	(args-as-json (token-to-json node token)))
     (when *room*
       (logmsg "enter add-beta-token [~A, ~A]" node-name args-as-json)
