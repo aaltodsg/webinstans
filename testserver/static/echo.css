@@ -63,6 +63,9 @@
     position: relative;
     overflow: auto;
 }
+#vars {
+    display: none;
+}
 #graph {
     display: none;
     /* background: #ccc none repeat scroll 0 0; */
@@ -97,4 +100,8 @@
 
 .checksum {
     display: none;
+}
+.niceToKnow {
+    display: none;
+    color: gray;
 }

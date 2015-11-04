@@ -10,6 +10,7 @@ var savedCss = {};
 var currentOp = null;
 var traceLevel = 0;
 var traceLevelIndent = 2;
+var definingNodes = new Object();
 
 function init()
 {
@@ -104,6 +105,31 @@ function onMessage(evt)
         $('#graph' ).scrollLeft( 0 );
 	$('#graph').css("visibility", "visible");
 	$('#graph').css("display", "block");
+    } else if (cmd == "var-mappings") {
+	$('#varMappings').css("visibility", "visible");
+	$('#varMappings').css("display", "block");
+	var mappings = jQuery.parseJSON(args);
+	for (var i in mappings) {
+	    var mapping = mappings[i];
+	    $('#varMappings').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
+	    var from = mapping[1]["value"];
+	    var to = mapping[0]["value"];
+	    var xx = $('div[class="trace"] span[class="var"]').each(function () {
+		// alert($(this).text());
+		if ($(this).text() == from) {
+		    $(this).text(to);
+		}
+	    });
+	}
+    } else if (cmd == "defining-nodes") {
+	var parsedList = jQuery.parseJSON(args);
+	for (var i in parsedList) {
+	    var item = parsedList[i];
+	    var v = item[0];
+	    var nodes = item[1];
+	    definingNodes[v] = nodes;
+	    // alert(v + ' -> ' + nodes.length + ' nodes');
+	}
     } else if (cmd == "enter" || cmd == "exit") {
 	$('#ops').css("visibility", "visible");
 	$('#ops').css("display", "block");
@@ -179,13 +205,17 @@ function jsonToHTML(o) {
 	// alert('type = ' + type + ', value = ' + value);
 	switch (type) {
 	case "binding":
-	    return '<span class="binding"><span class="var">' + jsonToHTML(o["var"]) + ' = ' + jsonToHTML(o["value"]) + '</span>';
+	    return '<span class="binding">' + jsonToHTML(o["var"]) + ' = ' + jsonToHTML(o["value"]) + '</span>';
 	case "token":
 	    return jsonListToHTML(value);
 	default:
 	    return span(type, value);
 	}
     }
+}
+
+function nodeHighlightSelector(node) {
+    return $('#' + node + ' ellipse');
 }
 
 function makeCurrentOp(n) {
@@ -196,25 +226,19 @@ function makeCurrentOp(n) {
     var elem = $('#traceOp'+n);
     elem.addClass('currentOp');
     elem[0].scrollIntoView({behavior: "smooth", block: "end"});
-    var data = elem.text();
-    // alert('called makeCurrentOp('+n+ '), data=' + data);
-    var i = data.indexOf(" ");
-    var cmd = data.substring(0, i);
-    var args = data.substring(i+1);
-    var j = args.indexOf(" ");
-    var operation = args.substring(0, j);
-    var rest = args.substring(j+1);
+    var cmd = $('#traceOp' + n + ' span[class="cmd"]').html();
+    var operation = $('#traceOp' + n + ' span[class="function"]').html();
+    // alert(operation);
     if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
 	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
-	var k = rest.indexOf(" ");
-	var node = rest.substring(0, k);
+	var node = $('#traceOp' + n + ' span[class="node"]').html();
 	// alert(cmd + ' ' + operation + ' in node ' + node);
 	if (currentNode) {
-	    $('#' + currentNode + ' ellipse').css(savedCss[currentNode]);
+	    nodeHighlightSelector(currentNode).css(savedCss[currentNode]);
 	}
 	currentNode = node;
-	savedCss[currentNode] = $('#' + currentNode + ' ellipse').css(nodePropNames);
-	$('#' + currentNode + ' ellipse').css(currentNodeCss(cmd, operation));
+	savedCss[currentNode] = nodeHighlightSelector(currentNode).css(nodePropNames);
+	nodeHighlightSelector(currentNode).css(currentNodeCss(cmd, operation));
     }
 }
 

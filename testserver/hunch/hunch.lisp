@@ -83,14 +83,17 @@
 		    ((instans::sparql-unbound-p x) "unbound")
 		    ((instans::nodep x) "node")
 		    (t "null")))
-	(value (cond ((instans::nodep x) (format nil "\"~A\"" (downcase-and-dash-to-underline (instans::node-name x))))
+	(value (cond ((instans::nodep x) (format nil "\"~A\"" (node-json-name x)))
 		     ((instans::sparql-var-p x) (format nil "\"~A\"" (instans::sparql-value-to-string x)))
 		     ((instans::rdf-iri-p x) (format nil "\"~A\"" (instans::sparql-value-to-string x)))
 		     (t (instans::sparql-value-to-string x)))))
     (json-typed-value type value)))
 
+(defun sparql-var-json-name (x)
+  (string-downcase (instans::uniquely-named-object-name x)))  
+
 (defun sparql-var-to-json (x)
-  (json-typed-value "var" (format nil "\"~A\"" (instans::uniquely-named-object-name x))))
+  (json-typed-value "var" (format nil "\"~A\"" (sparql-var-json-name x))))
 
 (defun checksum-to-json (x)
   (json-typed-value "checksum" (second x)))
@@ -104,6 +107,8 @@
 		else collect (char-downcase ch))
 	  'string))
 
+(defun node-json-name (n)
+  (downcase-and-dash-to-underline (instans::node-name n)))
 
 (defun list-to-json (list)
   (format nil "[~{~A~^, ~}]" (mapcar #'sparql-value-to-json list)))
@@ -174,7 +179,7 @@
 	(broadcast *room* "exit add-beta-token [~A, ~A]" node-name args-as-json)))))
 
 (defun get-dot (room)
-  (logmsg "got command dot")
+  ;; (logmsg "got command dot")
   ;; (logdescribe room)
   (let ((instans (chat-room-instans room)))
     (when instans
@@ -183,7 +188,7 @@
 	  (instans::print-dot instans :stream stream :show-vars-p nil :html-labels-p nil))
 	(instans::shell-cmd "dot" "-Tsvg" "-O" dot-file-name)
 	(let ((svg (instans::file-contents-to-string (format nil "~A.svg" dot-file-name))))
-	  (logmsg "text-message-received: dot-result ~A" (message-sample svg))
+	  (logmsg "get-dot: dot-result ~A" (message-sample svg))
 	  ;; (delete-file svg)
 	  ;; (delete-file dot-file-name)
 	  (broadcast room "dot-result ~A" svg))))))
@@ -195,6 +200,55 @@
 ;;    (when instans
 ;;      (loggingmsgs
 ;;        (instans::main "--execute" :instans instans :exit-after-processing-args-p t :execute-immediately-p t)))))
+
+(defun get-var-mappings (room)
+  (let ((instans (chat-room-instans room)))
+    (when instans
+      (let ((var-mappings (format nil "[~{~A~^, ~}]" 
+			       (loop for (from . to) in (instans::instans-bindings instans)
+				     collect (format nil "[~A, ~A]" (sparql-var-to-json from) (sparql-var-to-json to))))))
+	(logmsg "get-var-info: ~A" var-mappings)
+	(broadcast room "var-mappings ~A" var-mappings)))))
+
+(defun get-defining-nodes (room)
+  (let ((instans (chat-room-instans room)))
+    (when instans
+      (let* ((nodes (instans::instans-nodes instans))
+	     (result (loop for (from . to) in (instans::instans-bindings instans)
+			   collect (format nil "[\"~A\", [~{\"~A\"~^, ~}]]"
+					   (sparql-var-json-name from)
+					   (loop for node in nodes when (member to (instans::node-def node) :test #'instans::sparql-var-equal)
+						 collect (node-json-name node))) into r
+			   finally (return (format nil "[~{~A~^, ~}]" r)))))
+	(logmsg "get-defining-nodes: ~A" result)
+	(broadcast room "defining-nodes ~A" result)))))
+  
+(defun get-using-nodes (room)
+  (let ((instans (chat-room-instans room)))
+    (when instans
+      (let* ((nodes (instans::instans-nodes instans))
+	     (result (loop for (from . to) in (instans::instans-bindings instans)
+			   collect (format nil "[\"~A\", [~{\"~A\"~^, ~}]]"
+					   (sparql-var-json-name from)
+					   (loop for node in nodes when (member to (instans::node-use node) :test #'instans::sparql-var-equal)
+						 collect (node-json-name node))) into r
+			   finally (return (format nil "[~{~A~^, ~}]" r)))))
+	(logmsg "get-using-nodes: ~A" result)
+	(broadcast room "using-nodes ~A" result)))))
+  
+(defun get-matching-nodes (room)
+  (let ((instans (chat-room-instans room)))
+    (when instans
+      (let* ((nodes (instans::filter #'instans::join-node-p (instans::instans-nodes instans)))
+	     (result (loop for (from . to) in (instans::instans-bindings instans)
+			   collect (format nil "[\"~A\", [~{\"~A\"~^, ~}]]"
+					   (sparql-var-json-name from)
+					   (loop for node in nodes when (member to (instans::node-use node) :test #'instans::sparql-var-equal)
+						 collect (node-json-name node))) into r
+			   finally (return (format nil "[~{~A~^, ~}]" r)))))
+	(logmsg "get-matching-nodes: ~A" result)
+	(broadcast room "matching-nodes ~A" result)))))
+  
 
 (defmethod hunchensocket:text-message-received ((room chat-room) user message)
   (handler-case
@@ -211,6 +265,10 @@
 		     (progn
 		       (setf (chat-room-instans room) (instans::main args))
 		       (get-dot room)
+		       (get-var-mappings room)
+		       (get-defining-nodes room)
+		       (get-using-nodes room)
+		       (get-matching-nodes room)
 		       (logmsg "Execution succeeded")
 		       (broadcast room "end succeeded"))
 		   (t (e)
