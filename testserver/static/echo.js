@@ -11,6 +11,18 @@ var currentOp = null;
 var traceLevel = 0;
 var traceLevelIndent = 2;
 var definingNodes = new Object();
+var prevNode = null;
+var prevOpKind = null;
+var edgeTraversInfo = new Object();
+
+// Auxiliary functions
+function stringBefore(str, delim) {
+    return str.substring(0, str.indexOf(delim));
+}
+
+function stringAfter(str, delim) {
+    return str.substring(str.indexOf(delim)+delim.length);
+}
 
 function init()
 {
@@ -84,9 +96,8 @@ function onMessage(evt)
     // writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
     //    websocket.close();
     var data = evt.data;
-    var i = data.indexOf(" ");
-    var cmd = data.substring(0, i);
-    var args = data.substring(i+1);
+    var cmd = stringBefore(data, ' ');
+    var args = stringAfter(data, ' ');
     writeToLog('<span style="color: blue;">CMD: ' + cmd+'</span>');
     if (cmd == "dot-result") {
 	//         writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
@@ -142,7 +153,13 @@ function onMessage(evt)
 	    traceLevel = traceLevel - 1;
 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
 	}
-	var content = callToHTML(cmd, args);
+	var operation = stringBefore(args, ' ');
+	var params = stringAfter(args, ' ');
+	var jsonParams = jQuery.parseJSON(params);
+	if (cmd == "enter") {
+	    addEdgeTraverseInfo(operation, jsonParams, c);
+	}
+	var content = callToHTML(cmd, operation, jsonParams);
 	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
 	    makeCurrentOp(c);
@@ -150,9 +167,8 @@ function onMessage(evt)
     } else if (cmd == "end") {
 	$('#player').css("visibility", "visible");
 	$('#player').css("display", "block");
-	var j = args.indexOf(" ");
-	var status = args.substring(0, j);
-	var rest = args.substring(j+1);
+	var status = stringBefore(args, ' ');
+	var rest = stringAfter(args, ' ');
 	$('#executionInfo').text('Execution ' + args + '. ' + $('#ops div').length + ' operations');
 	if (status == "failed") {
 	    $('#executionInfo').addClass('executionFailed');
@@ -161,15 +177,46 @@ function onMessage(evt)
     }
 }
 
+function addEdgeTraverseInfo(operation, jsonParams, opNo) {
+    if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
+	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
+	var node = $('#traceOp' + opNo + ' span[class="node"]').html();
+	var opKind = stringBefore(operation, '-');
+	var params = stringAfter(call, ' ');
+	if (prevNode == null) {
+	    if (!edgeTraverseInfo[null]) {
+		edgeTraverseInfo[null] = new Object();
+		edgeTraverseInfo[null][null] = new Object();
+	    }
+	}
+	var map = edgeTraverseInfo[prevOpKind][prevNode];
+	if (!map[opKind]) {
+	    map[opKind] = new Object();
+	}
+	if (!map[opKind][node]) {
+	    map[opKind][node] = new Object();
+	}
+	if (!map[opKind][node][jsonParams]) {
+	    map[opKind][node][jsonParams] = [];
+	}
+	map[opKind][node][jsonParams].push(opNo);
+    }
+    prevNode = node;
+    prevOpKind = opKind;
+}
+
+
+// var prevNode = null;
+// var prevOpKind = null;
+// var edgeTraversInfo = new Object();
+// prevOpKind	prevNode    opKind		node
+// (add|remove) ->	nodeName -> (add|remove) -> 	nodeName
+
 function span(cls, txt) {
     return '<span class="' + cls + '">' + txt + '</span>';
 }
 
-function callToHTML(cmd, args) {
-    var j = args.indexOf(" ");
-    var operation = args.substring(0, j);
-    var params = args.substring(j+1);
-    var jsonParams = jQuery.parseJSON(params);
+function callToHTML(cmd, operation, jsonParams) {
     // alert(jsonParams);
     return span("cmd", cmd) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, open='(', close=')');
 }
