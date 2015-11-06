@@ -11,9 +11,11 @@ var currentOp = null;
 var traceLevel = 0;
 var traceLevelIndent = 2;
 var definingNodes = new Object();
-var prevNode = null;
-var prevOpKind = null;
-var edgeTraversInfo = new Object();
+var prevNode = 'missing';
+var prevOperation = 'missing';
+var prevToken = 'missing';
+var edgeTraverseInfo = new Object();
+var ignoreChecksums = true;
 
 // Auxiliary functions
 function stringBefore(str, delim) {
@@ -156,14 +158,14 @@ function onMessage(evt)
 	var operation = stringBefore(args, ' ');
 	var params = stringAfter(args, ' ');
 	var jsonParams = jQuery.parseJSON(params);
-	if (cmd == "enter") {
-	    addEdgeTraverseInfo(operation, jsonParams, c);
-	}
 	var content = callToHTML(cmd, operation, jsonParams);
 	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
 	    makeCurrentOp(c);
 	});
+	if (cmd == "enter") {
+	    addEdgeTraverseInfo(operation, jsonParams, c);
+	}
     } else if (cmd == "end") {
 	$('#player').css("visibility", "visible");
 	$('#player').css("display", "block");
@@ -174,43 +176,105 @@ function onMessage(evt)
 	    $('#executionInfo').addClass('executionFailed');
 	}
 	makeCurrentOp(0);
+	showEdgeTraverseInfo();
     }
+}
+
+function getOrInitialize(map, key) {
+    if (!map.hasOwnProperty(key)) {
+	map[key] = new Object();
+    }
+    // alert('getOrInitialize ' + key);
+    return map[key];
+}
+
+var foo = null;
+
+function jsonToString(json) {
 }
 
 function addEdgeTraverseInfo(operation, jsonParams, opNo) {
-    if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
-	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
-	var node = $('#traceOp' + opNo + ' span[class="node"]').html();
-	var opKind = stringBefore(operation, '-');
-	var params = stringAfter(call, ' ');
-	if (prevNode == null) {
-	    if (!edgeTraverseInfo[null]) {
-		edgeTraverseInfo[null] = new Object();
-		edgeTraverseInfo[null][null] = new Object();
-	    }
-	}
-	var map = edgeTraverseInfo[prevOpKind][prevNode];
-	if (!map[opKind]) {
-	    map[opKind] = new Object();
-	}
-	if (!map[opKind][node]) {
-	    map[opKind][node] = new Object();
-	}
-	if (!map[opKind][node][jsonParams]) {
-	    map[opKind][node][jsonParams] = [];
-	}
-	map[opKind][node][jsonParams].push(opNo);
+    if (operation == 'rete-add' || operation == 'rete-remove') {
+	prevNode = 'root';
+	prevOperation = operation;
+	console.log(jsonParams);
+	jsonParams.shift();
+	var jl = jsonToHTML(jsonToHTML(jsonParams));
+	console.log('jl='+jl);
+	var elem = jQuery('<span>'+jl+'</span>');
+	prevToken = elem.text();
+    } else if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
+	       operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
+	var node = jsonParams[0]["value"];
+	var elem = jQuery('<span>'+jsonListToHTML(jsonParams[1]["value"])+'</span>');
+	var token = elem.text();
+	// console.log('token = '+token);
+	// console.log('params = ' + jsonParams[1]);
+	// console.log(jsonParams[1]["value"]);
+	// console.log('elem = ' + elem);
+	var map = getOrInitialize(edgeTraverseInfo, prevNode);
+	map = getOrInitialize(map, prevOperation);
+	map = getOrInitialize(map, prevToken);
+	map = getOrInitialize(map, node);
+	map = getOrInitialize(map, operation);
+	map = getOrInitialize(map, token);
+	map[opNo] = jsonParams;
+	console.log('opNo=' + opNo);
+	console.log('prevNode=' + prevNode + ' prevOperation=' + prevOperation + ' prevToken=' + prevToken);
+	console.log('node=' + node + ' operation=' + operation + ' token=' + token);
+	console.log('result = ' + edgeTraverseInfo[prevNode][prevOperation][prevToken][node][operation][token][opNo]);
+	prevNode = node;
+	prevOperation = operation;
+	prevToken = token;
     }
-    prevNode = node;
-    prevOpKind = opKind;
+}
+
+function showEdgeTraverseInfo() {
+    Object.keys(edgeTraverseInfo).forEach(function(fromNode) {
+        console.log('fromNode = ' + fromNode);
+	var fromOperationMap = edgeTraverseInfo[fromNode];
+	Object.keys(fromOperationMap).forEach(function(fromOperation) {
+            console.log('fromOperation = ' + fromOperation);
+	    var fromTokenMap = fromOperationMap[fromOperation];
+	    Object.keys(fromTokenMap).forEach(function(fromToken) {
+		console.log('fromToken = ' + fromToken);
+		var toNodeMap = fromTokenMap[fromToken];
+		Object.keys(toNodeMap).forEach(function(toNode) {
+		    console.log('toNode = ' + toNode);
+		    var toOperationMap = fromTokenMap[toNode];
+		    Object.keys(toOperationMap).forEach(function(toOperation) {
+			console.log('toOperation = ' + toOperation);
+		    });
+		});
+	    });
+	});
+    });
+
+    // var fromNodeMap = edgeTraverseInfo;
+    // var fromNodeKeys = Object.keys(fromNodeMap);
+    // console.log(fromNodeKeys);
+    // for (var fni in fromNodeKeys) {
+    // 	var fromNode = fromNodeKeys[fni];
+    // 	console.log('fni = ' + fni + ', fromNode = ' + fromNode);
+    // 	var fromOperationMap = fromNodeMap[fromNode];
+    // 	var fromOperationKeys = Object.keys(fromOperationMap);
+    // 	console.log(fromOperationKeys);
+    // 	for (var foi in Object.keys(fromOperationKeys)) {
+    // 	    var fromOperation = fromOperationMap[foi];
+    // 	    console.log('fromOperation = ' + fromOperation);
+    // 	    var fromTokenMap = fromOperationMap[fromOperation];
+    // 	    var fromTokenKeys = Object.keys(fromTokenMap);
+    // 	    console.log(fromTokenKeys);
+    // 	    for (var fti in Object.keys(fromTokenKeys)) {
+    // 		var fromToken = fromTokenMap[fti];
+    // 		$('#edgeTraverseInfo').append('<div class="edgeTraverse"></div>').find('div:last-child').append(span('edgeFromNode', fromNode)).append('->').append(span('edgeFromOperation', fromOperation)).append('->').append(span('edgeFromToken', fromToken));
+    // 	    }
+    // 	}
+    // }
 }
 
 
-// var prevNode = null;
-// var prevOpKind = null;
-// var edgeTraversInfo = new Object();
-// prevOpKind	prevNode    opKind		node
-// (add|remove) ->	nodeName -> (add|remove) -> 	nodeName
+// prevNode -> prevOp -> prevToken ->	node -> operation -> token
 
 function span(cls, txt) {
     return '<span class="' + cls + '">' + txt + '</span>';
