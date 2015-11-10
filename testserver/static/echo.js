@@ -8,7 +8,7 @@ var currentNode = null;
 var nodePropNames = ['fill', 'stroke'];
 var savedCss = {};
 var currentOp = null;
-var traceLevel = 0;
+var traceLevel = -1;
 var traceLevelIndent = 2;
 var definingNodes = new Object();
 var prevNode = 'missing';
@@ -16,6 +16,9 @@ var prevOperation = 'missing';
 var prevToken = 'missing';
 var edgeTraverseInfo = new Object();
 var ignoreChecksums = true;
+var trackCounter = -1;
+var trackEnterOps = [];
+var opTrackMapping = [];
 
 // Auxiliary functions
 function stringBefore(str, delim) {
@@ -93,11 +96,21 @@ function currentNodeCss(command, operation) {
     }
 }
 
+var seenMessage = -1;
+
 function onMessage(evt)
 {
     // writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
     //    websocket.close();
     var data = evt.data;
+    var messageNoStr = stringBefore(data, ' ');
+    var messageNo = parseInt(messageNoStr);
+    if (messageNo != seenMessage + 1) {
+	alert('Messages out of sequence! seenMessage = ' + seenMessage + ' received message = ' + messageNo);
+    } else {
+	seenMessage = messageNo;
+    }
+    data = stringAfter(data, ' ');
     var cmd = stringBefore(data, ' ');
     var args = stringAfter(data, ' ');
     writeToLog('<span style="color: blue;">CMD: ' + cmd+'</span>');
@@ -150,11 +163,19 @@ function onMessage(evt)
 	var indent = null;
 	if (cmd == "enter") {
 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
+	    if (traceLevel == 0) {
+		trackCounter = trackCounter + 1;
+		trackEnterOps.push([]);
+		console.log('>>>Increment trackCounter to ' + trackCounter + ' at operation ' + c);
+		console.log('>>>trackEnterOps[' + trackCounter + ']' + trackEnterOps[trackCounter]);
+	    }
 	    traceLevel = traceLevel + 1;
+	    trackEnterOps[trackCounter].push(c);
 	} else {
 	    traceLevel = traceLevel - 1;
 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
 	}
+	opTrackMapping.push(trackCounter);
 	var operation = stringBefore(args, ' ');
 	var params = stringAfter(args, ' ');
 	var jsonParams = jQuery.parseJSON(params);
@@ -177,6 +198,9 @@ function onMessage(evt)
 	}
 	makeCurrentOp(0);
 	showEdgeTraverseInfo();
+	for (var k = 0 ; k <= trackCounter; k++) {
+	    highlightTrackEnterOperations(k);
+	}
     }
 }
 
@@ -194,12 +218,13 @@ function jsonToString(json) {
 }
 
 function addEdgeTraverseInfo(operation, jsonParams, opNo) {
+    console.log('addEdgeTraverseInfo(' + operation + ', ' + jsonParams + ', ' + opNo + ')');
     if (operation == 'rete-add' || operation == 'rete-remove') {
+	console.log('!!!' + operation);
 	prevNode = 'root';
 	prevOperation = operation;
-	console.log(jsonParams);
 	jsonParams.shift();
-	var jl = jsonToHTML(jsonToHTML(jsonParams));
+	var jl = jsonToHTML(jsonParams);
 	console.log('jl='+jl);
 	var elem = jQuery('<span>'+jl+'</span>');
 	prevToken = elem.text();
@@ -219,7 +244,6 @@ function addEdgeTraverseInfo(operation, jsonParams, opNo) {
 	map = getOrInitialize(map, operation);
 	map = getOrInitialize(map, token);
 	map[opNo] = jsonParams;
-	console.log('opNo=' + opNo);
 	console.log('prevNode=' + prevNode + ' prevOperation=' + prevOperation + ' prevToken=' + prevToken);
 	console.log('node=' + node + ' operation=' + operation + ' token=' + token);
 	console.log('result = ' + edgeTraverseInfo[prevNode][prevOperation][prevToken][node][operation][token][opNo]);
@@ -230,6 +254,8 @@ function addEdgeTraverseInfo(operation, jsonParams, opNo) {
 }
 
 function showEdgeTraverseInfo() {
+    console.log('showEdgeTraverseInfo()');
+    console.log('trackCounter = ' + trackCounter);
     Object.keys(edgeTraverseInfo).forEach(function(fromNode) {
         console.log('fromNode = ' + fromNode);
 	var fromOperationMap = edgeTraverseInfo[fromNode];
@@ -241,38 +267,31 @@ function showEdgeTraverseInfo() {
 		var toNodeMap = fromTokenMap[fromToken];
 		Object.keys(toNodeMap).forEach(function(toNode) {
 		    console.log('toNode = ' + toNode);
-		    var toOperationMap = fromTokenMap[toNode];
+		    var toOperationMap = toNodeMap[toNode];
 		    Object.keys(toOperationMap).forEach(function(toOperation) {
 			console.log('toOperation = ' + toOperation);
+			var toTokenMap = toOperationMap[toOperation];
+			Object.keys(toTokenMap).forEach(function(toToken) {
+			    console.log('toToken = ' + toToken);
+			    $('#edgeTraverseInfo').append('<div class="edgeTraverse"></div>').find('div:last-child').append(span('edgeFromNode', fromNode)).append('->').append(span('edgeFromOperation', fromOperation)).append('->').append(span('edgeFromToken', htmlEncode(fromToken))).append('->').append(span('edgeToNode', toNode)).append('->').append(span('edgeToOperation', toOperation)).append('->').append(span('edgeToToken', htmlEncode(toToken)));
+			});
 		    });
 		});
 	    });
 	});
     });
-
-    // var fromNodeMap = edgeTraverseInfo;
-    // var fromNodeKeys = Object.keys(fromNodeMap);
-    // console.log(fromNodeKeys);
-    // for (var fni in fromNodeKeys) {
-    // 	var fromNode = fromNodeKeys[fni];
-    // 	console.log('fni = ' + fni + ', fromNode = ' + fromNode);
-    // 	var fromOperationMap = fromNodeMap[fromNode];
-    // 	var fromOperationKeys = Object.keys(fromOperationMap);
-    // 	console.log(fromOperationKeys);
-    // 	for (var foi in Object.keys(fromOperationKeys)) {
-    // 	    var fromOperation = fromOperationMap[foi];
-    // 	    console.log('fromOperation = ' + fromOperation);
-    // 	    var fromTokenMap = fromOperationMap[fromOperation];
-    // 	    var fromTokenKeys = Object.keys(fromTokenMap);
-    // 	    console.log(fromTokenKeys);
-    // 	    for (var fti in Object.keys(fromTokenKeys)) {
-    // 		var fromToken = fromTokenMap[fti];
-    // 		$('#edgeTraverseInfo').append('<div class="edgeTraverse"></div>').find('div:last-child').append(span('edgeFromNode', fromNode)).append('->').append(span('edgeFromOperation', fromOperation)).append('->').append(span('edgeFromToken', fromToken));
-    // 	    }
-    // 	}
-    // }
 }
 
+
+function highlightTrackEnterOperations(tn) {
+    for (var i in trackEnterOps[tn]) {
+	var ops = trackEnterOps[i];
+	for (var j in ops) {
+	    var op = ops[j];
+	    console.log('tn ' + tn + ' op ' + op);
+	}
+    }
+}
 
 // prevNode -> prevOp -> prevToken ->	node -> operation -> token
 
@@ -310,6 +329,9 @@ function jsonToHTML(o) {
     } else {
 	var type = o["type"];
 	var value = o["value"];
+	if (typeof type == 'undefined') {
+	    console.log('undefined type in ' + o + ', o is of type ' + (typeof o));
+	}
 	if (type == "iri") {
 	    value = htmlEncode(value);
 	}

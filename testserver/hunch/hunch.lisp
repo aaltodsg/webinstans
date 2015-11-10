@@ -42,8 +42,10 @@
 	   (format nil "~A ... ~A" (subseq message 0 prefix-length) (subseq message (- (length message) suffix-length) (length message)))))))
   
 
+(defvar *message-number*)
+
 (defun broadcast (room message &rest args)
-  (let ((text (apply #'format nil message args)))
+  (let ((text (apply #'format nil (format nil "~D ~A" (incf *message-number*) message) args)))
     (logmsg "broadcast ~A ~A" room (message-sample text))
     (loop for peer in (hunchensocket:clients room)
 	  do (hunchensocket:send-text-message peer text))))
@@ -52,6 +54,7 @@
   (logmsg "client-connected ~A ~A" room user)
   ;; (logdescribe room)
   ;; (logdescribe user)
+  (setf *message-number* -1)
   (broadcast room "~a has joined ~a" (name user) (name room)))
 
 (defmethod hunchensocket:client-disconnected ((room chat-room) user)
