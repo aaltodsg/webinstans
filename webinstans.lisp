@@ -21,12 +21,6 @@
       (multiple-value-prog1
 	  (instans::main main-options)
 	(when trace-options
-	  (let ((trace-output-file (second (first trace-options))))
-	    (cond ((null trace-output-file)
-		   (instans-trace-print *instans-trace*))
-		  (t
-		   (with-open-file (output trace-output-file :direction :output :if-exists :supersede)
-		     (instans-trace-print *instans-trace* output))))))))))
-
+	  (instans-trace-print *instans-trace* (second (first trace-options))))))))
 
 	    
