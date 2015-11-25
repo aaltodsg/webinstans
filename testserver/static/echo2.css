@@ -1,0 +1,107 @@
+/* Clearfix */
+.clearfix:before, .clearfix:after { content: ""; display: table; }
+.clearfix:after { clear: both; }
+.clearfix { *zoom: 1; }
+
+/* #buttons { */
+/*     width: 100%; */
+/*     margin: 0 auto; */
+/* } */
+#player {
+    display: none;
+    border: 3px solid #666;
+    width: 20%;
+    float: left;
+    margin: 5px;
+    padding: 5px;
+    border: 0.5px solid #666;
+    position: relative;
+    top: 50%;
+    overflow: auto;
+}
+/* #commands { */
+/*     /\* border: 3px solid #666; *\/ */
+/*     width: 45%; */
+/*     float: left; */
+/*     margin: 5px; */
+/*     padding: 5px; */
+/*     position: relative; */
+/*     top: 50%; */
+/*   /\* transform: translateY(-50%); *\/ */
+/*     overflow: auto; */
+/* } */
+#opsLog{
+    width: 100%;
+    margin: 0 auto;
+}
+#execution {
+    display: flex;
+    flex-direction: column;
+}
+#log {
+    /* display: none; */
+    width: 20%;
+    float: left;
+    /* background: #ccc none repeat scroll 0 0; */
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    height: 200px;
+    position: relative;
+    overflow: auto;
+}
+#ops {
+    display: none;
+    width: 100%;
+    width: 75%;
+    float: left;
+    /* background: #ccc none repeat scroll 0 0; */
+    border: 3px solid #666;
+    margin: 5px;
+    padding: 5px;
+    height: 200px;
+    position: relative;
+    overflow: auto;
+}
+#vars {
+    display: none;
+}
+#graph {
+    display: none;
+    /* background: #ccc none repeat scroll 0 0; */
+    /* border: 3px solid #666; */
+    margin: 5px;
+    padding: 5px;
+    position: relative;
+    /* <!-- overflow: auto; --> */
+    visibility: hidden;
+}
+
+.trace {
+    font-family: monospace;
+    font-size: smaller;
+}
+
+.currentOp {
+    background: #00aaff;
+    font-weight: bold;
+}
+
+.playerCommand {
+    margin: 5px;
+}
+
+.commandButton {
+}
+.executionFailed {
+    color: red;
+    font-weight: bold;
+}
+
+.checksum {
+    display: none;
+}
+.niceToKnow {
+    display: none;
+    color: gray;
+}
