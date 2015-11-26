@@ -11,6 +11,9 @@
 (push  "/Users/enu/aaltodsg/instans/src/" asdf:*central-registry*)
 (compile-system :instans)
 (load-system :instans)
+(push  "/Users/enu/aaltodsg/webinstans/" asdf:*central-registry*)
+(compile-system :webinstans)
+(load-system :webinstans)
 
 (defsystem :hunch
   :description "Web INSTANS"
@@ -30,7 +33,7 @@
                :cl-fad
 	       :cl-who)
   :serial t
-  :components ((:file "hunch")))
+  :components ((:file "hunch2")))
 
 (defpackage #:hunch
   (:use #:common-lisp ; #:instans
