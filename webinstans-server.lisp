@@ -2,26 +2,26 @@
 
 (in-package :webinstans)
 
-(defun tracing-main (args)
-  (cond ((null args)
-	 (setf args (list "")))
-	((stringp args)
-	 (setf args (list args))))
-  (multiple-value-bind (trace-options other)
-      (instans::extract-options args '("trace"))
-    ;; (instans::inform "Got tracing arguments ~S" trace-options)
-    ;; (instans::inform "Other args ~S" other)
-    (logclean)
-    (when trace-options
-      (when (not (= 1 (length trace-options)))
-	(error "Expecting just one tracing argument in ~A" args))
-      (instans-trace-init))
-    (let ((main-options (instans::parsed-options-to-string other)))
-      ;; (instans::inform "Haa ~S" main-options)
-      (multiple-value-prog1
-	  (instans::main main-options)
-	(when trace-options
-	  (instans-trace-print *instans-trace* (second (first trace-options))))))))
+;; (defun tracing-main (args)
+;;   (cond ((null args)
+;; 	 (setf args (list "")))
+;; 	((stringp args)
+;; 	 (setf args (list args))))
+;;   (multiple-value-bind (trace-options other)
+;;       (instans::extract-options args '("trace"))
+;;     ;; (instans::inform "Got tracing arguments ~S" trace-options)
+;;     ;; (instans::inform "Other args ~S" other)
+;;     (logclean)
+;;     (when trace-options
+;;       (when (not (= 1 (length trace-options)))
+;; 	(error "Expecting just one tracing argument in ~A" args))
+;;       (instans-trace-init))
+;;     (let ((main-options (instans::parsed-options-to-string other)))
+;;       ;; (instans::inform "Haa ~S" main-options)
+;;       (multiple-value-prog1
+;; 	  (instans::main main-options)
+;; 	(when trace-options
+;; 	  (instans-trace-print *instans-trace* (second (first trace-options))))))))
 
 (defclass webinstans-server (hunchensocket:websocket-resource)
   ((name :initarg :name :initform (error "Name this room!") :reader name)
@@ -146,6 +146,14 @@
 	(broadcast server "matching-nodes ~A" result)))))
   
 
+(defun get-trace (server)
+  (let ((instans (webinstans-server-instans server)))
+    (when instans
+      (let ((json-trace (with-output-to-string (ostream) (instans-trace-print *instans-trace* ostream :json))))
+	;; (logmsg "get-trace: ~A" (message-sample json-trace))
+	(logmsg "get-trace: ~A" json-trace)
+	(broadcast server "trace ~A" json-trace)))))
+
 (defmethod hunchensocket:text-message-received ((server webinstans-server) user message)
   (handler-case
       (let ((*server* server))
@@ -161,6 +169,7 @@
 		     (progn
 		       (let ((trace-file (instans::create-temp-file-name :type "json")))
 			 (setf args (format nil "--trace=~A ~A" trace-file args))
+			 (instans-trace-init)
 			 (setf (webinstans-server-instans server) (webinstans::main args))
 			 (get-dot server)
 			 (get-var-mappings server)

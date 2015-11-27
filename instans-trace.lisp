@@ -68,20 +68,22 @@
 	       (destructuring-bind (direction op . args) call
 		 (format stream "~(\"direction\": ~S~), " (string direction))
 		 (format stream "~(\"operation\": ~S~), " (string op))
-		 (format stream "~(\"parameters\": ~A~), " (list-to-json args)))
+		 (format stream "~(\"parameters\": ~A~)" (list-to-json args)))
 	       (when state
 		 (format *error-output* "~%state = ~S" state)
-		 (format stream "\"state\": {")
-		 (loop for rest on state by #'cddr
+		 (format stream ", \"state\": {")
+		 (loop for comma = "" then ", "
+		       for rest on state by #'cddr
 		       for key = (first rest)
 		       for value = (second rest)
-		       do (format stream "~(~S: ~A~)," (string key) (sparql-value-to-json value)))
+		       do (format stream "~A~(~S: ~A~)" comma (string key) (sparql-value-to-json value)))
 		 (format stream "}")))
 	     (format stream "~%}")))
     (format stream "~&[")
-    (loop for item in (instans-trace-operations trace)
-	  do (print-trace-item item)
-	  do (format stream ","))
+    (loop for comma = "" then ", "
+	  for item in (instans-trace-operations trace)
+	  do (format stream comma)
+	  do (print-trace-item item))
     (format stream "~&]")))
 
 (defun json-typed-value (type value)
@@ -124,6 +126,8 @@
 			      ((instans::existence-start-node-token-state-p x) (format nil "{\"counter\": ~D, \"isActive\": ~S}"
 										       (instans::existence-start-node-token-state-counter x)
 										       (if (instans::existence-start-node-token-state-active-p x) "true" "false")))
+			      ((eq type "keyword")
+			       (instans::sparql-value-to-string (string-downcase (string x))))
 			      (t (instans::sparql-value-to-string x)))))
 	     (json-typed-value type value))))))
 

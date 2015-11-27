@@ -3,10 +3,10 @@
 (in-package :webinstans)
 
 (defmethod instans::rete-add :around ((this instans::instans) subj pred obj graph)
-  (trace-wrap-call (cons :rete-add (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj graph))))
+  (trace-wrap-call (cons :rete-add (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj (if graph graph :default)))))
 
 (defmethod instans::rete-remove :around ((this instans::instans) subj pred obj graph)
-  (trace-wrap-call (cons :rete-remove (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj graph))))
+  (trace-wrap-call (cons :rete-remove (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj (if graph graph :default)))))
 
 ;; (defgeneric rete-add-rule-instance (instans node token))
 

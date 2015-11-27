@@ -8,7 +8,7 @@ var currentNode = null;
 var nodePropNames = ['fill', 'stroke'];
 var savedCss = {};
 var currentOp = null;
-var traceLevel = -1;
+var traceLevel = 0;
 var traceLevelIndent = 2;
 var definingNodes = new Object();
 var prevNode = 'missing';
@@ -16,9 +16,11 @@ var prevOperation = 'missing';
 var prevToken = 'missing';
 var edgeTraverseInfo = new Object();
 var ignoreChecksums = true;
-var trackCounter = -1;
+var trackCounter = 0;
 var trackEnterOps = [];
 var opTrackMapping = [];
+var varMappings = new Object();
+var reverseVarMappings = new Object();
 
 // Auxiliary functions
 function stringBefore(str, delim) {
@@ -140,12 +142,17 @@ function onMessage(evt)
 	    $('#varMappings').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
 	    var from = mapping[1]["value"];
 	    var to = mapping[0]["value"];
-	    var xx = $('div[class="trace"] span[class="var"]').each(function () {
-		// alert($(this).text());
-		if ($(this).text() == from) {
-		    $(this).text(to);
-		}
-	    });
+	    // alert('from ' + from + ' to ' + to);
+	    if (typeof varMappings[from] != "undefined") {
+		alert("Variable " + from + " already mapped to " + varMappings[from]);
+	    } else {
+		varMappings[from] = to;
+	    }
+	    if (typeof reverseVarMappings[to] != "undefined") {
+		alert("Variable " + to + " already mapped to " + reverseVarMappings[to]);
+	    } else {
+		reverseVarMappings[to] = from;
+	    }
 	}
     } else if (cmd == "defining-nodes") {
 	var parsedList = jQuery.parseJSON(args);
@@ -156,37 +163,42 @@ function onMessage(evt)
 	    definingNodes[v] = nodes;
 	    // alert(v + ' -> ' + nodes.length + ' nodes');
 	}
-    } else if (cmd == "enter" || cmd == "exit") {
-	$('#ops').css("visibility", "visible");
-	$('#ops').css("display", "block");
-	var c = $('#ops div').length;
-	var indent = null;
-	if (cmd == "enter") {
-	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
-	    if (traceLevel == 0) {
-		trackCounter = trackCounter + 1;
-		trackEnterOps.push([]);
-		console.log('>>>Increment trackCounter to ' + trackCounter + ' at operation ' + c);
-		console.log('>>>trackEnterOps[' + trackCounter + ']' + trackEnterOps[trackCounter]);
-	    }
-	    traceLevel = traceLevel + 1;
-	    trackEnterOps[trackCounter].push(c);
-	} else {
-	    traceLevel = traceLevel - 1;
-	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
-	}
-	opTrackMapping.push(trackCounter);
-	var operation = stringBefore(args, ' ');
-	var params = stringAfter(args, ' ');
-	var jsonParams = jQuery.parseJSON(params);
-	var content = callToHTML(cmd, operation, jsonParams);
-	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
-	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
-	    makeCurrentOp(c);
-	});
-	if (cmd == "enter") {
-	    addEdgeTraverseInfo(operation, jsonParams, c);
-	}
+    // } else if (cmd == "enter" || cmd == "exit") {
+    // 	$('#ops').css("visibility", "visible");
+    // 	$('#ops').css("display", "block");
+    // 	var c = $('#ops div').length;
+    // 	var indent = null;
+    // 	if (cmd == "enter") {
+    // 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
+    // 	    if (traceLevel == 0) {
+    // 		trackCounter = trackCounter + 1;
+    // 		trackEnterOps.push([]);
+    // 		console.log('>>>Increment trackCounter to ' + trackCounter + ' at operation ' + c);
+    // 		console.log('>>>trackEnterOps[' + trackCounter + ']' + trackEnterOps[trackCounter]);
+    // 	    }
+    // 	    traceLevel = traceLevel + 1;
+    // 	    trackEnterOps[trackCounter].push(c);
+    // 	} else {
+    // 	    traceLevel = traceLevel - 1;
+    // 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
+    // 	}
+    // 	opTrackMapping.push(trackCounter);
+    // 	var operation = stringBefore(args, ' ');
+    // 	var params = stringAfter(args, ' ');
+    // 	var jsonParams = jQuery.parseJSON(params);
+    // 	var content = callToHTML(cmd, operation, jsonParams);
+    // 	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
+    // 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
+    // 	    makeCurrentOp(c);
+    // 	});
+    // 	if (cmd == "enter") {
+    // 	    addEdgeTraverseInfo(operation, jsonParams, c);
+    // 	}
+    } else if (cmd == "trace") {
+	var parsedTrace = jQuery.parseJSON(args);
+    	$('#ops').css("visibility", "visible");
+    	$('#ops').css("display", "block");
+	processTrace(parsedTrace);
     } else if (cmd == "end") {
 	$('#player').css("visibility", "visible");
 	$('#player').css("display", "block");
@@ -196,12 +208,48 @@ function onMessage(evt)
 	if (status == "failed") {
 	    $('#executionInfo').addClass('executionFailed');
 	}
-	makeCurrentOp(0);
-	showEdgeTraverseInfo();
-	for (var k = 0 ; k <= trackCounter; k++) {
-	    highlightTrackEnterOperations(k);
-	}
+	// makeCurrentOp(0);
+	// showEdgeTraverseInfo();
+	// for (var k = 0 ; k <= trackCounter; k++) {
+	//     highlightTrackEnterOperations(k);
+	// }
     }
+}
+
+function processTrace(trace) {
+    // $('#ops').append(parsedTrace);
+    console.log(trace);
+    for (var i in trace) {
+	var item = trace[i];
+	var cmd = item["direction"];
+	var op = item["operation"];
+	var parms = item["parameters"];
+    	var indent = null;
+    	if (cmd == "enter") {
+    	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
+    	    if (traceLevel == 0) {
+    		trackCounter = trackCounter + 1;
+    		trackEnterOps.push([]);
+    		console.log('>>>Increment trackCounter to ' + trackCounter + ' at operation ' + i);
+    		console.log('>>>trackEnterOps[' + (trackCounter-1) + ']' + trackEnterOps[trackCounter-1]);
+    	    }
+    	    traceLevel = traceLevel + 1;
+    	    trackEnterOps[(trackCounter-1)].push(i);
+    	} else {
+    	    traceLevel = traceLevel - 1;
+    	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
+    	}
+	var content = callToHTML(cmd, op, parms);
+    	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
+    	    makeCurrentOp(i);
+    	});
+    }
+    $('div[class="trace"] span[class="var"]').each(function() {
+	var from = $(this).text();
+	if (typeof varMappings[from] != "undefined") {
+	    $(this).text(varMappings[from]);
+	}
+    });
 }
 
 function getOrInitialize(map, key) {

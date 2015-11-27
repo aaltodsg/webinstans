@@ -84,7 +84,7 @@
 
 .currentOp {
     background: #00aaff;
-    font-weight: bold;
+    font-weight: italic;
 }
 
 .playerCommand {
@@ -104,4 +104,38 @@
 .niceToKnow {
     display: none;
     color: gray;
+}
+.cmd {
+    font-weight: bold;
+}
+.function {
+    color: green;
+}
+.var {
+    color: red;
+    font-size: larger;
+}
+.node {
+    color: orange;
+}
+.iri {
+    color: brown;
+}
+.boolean {
+    color: blue;
+    font-weight: bolder;
+}
+.keyword {
+    font-variant: small-caps;
+    color: crimson;
+}
+.string {
+    color: indigo;
+    font-style: oblique;
+}
+.string::before {
+    content: "\"";
+}
+.string::after {
+    content: "\"";
 }
