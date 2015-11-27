@@ -17,4 +17,3 @@
     (let ((*standard-output* str))
       (describe object))))
 
-

@@ -3,8 +3,8 @@
 (setf SB-IMPL::*DEFAULT-EXTERNAL-FORMAT* :utf-8)
 (in-package :asdf)
 
-;; (ql:quickload "hunchentoot")
-;; (ql:quickload "hunchensocket")
+(ql:quickload "hunchentoot")
+(ql:quickload "hunchensocket")
 ;; (ql:quickload "parenscript")
 ;; (ql:quickload "css-lite")
 ;; (ql:quickload "cl-who")
@@ -18,7 +18,8 @@
   :license "MIT"
   :version "0.0.1"
   :depends-on (
-	       ;; :hunchentoot
+	       :hunchentoot
+	       :hunchensocket
 	       ;; :css-lite
 	       ;; :parenscript
                ;; :alexandria
@@ -36,7 +37,7 @@
 	       (:file "util" :depends-on ("webinstans-macros"))
 	       (:file "instans-trace" :depends-on ("webinstans-macros"))
 	       (:file "interpreter-around-methods" :depends-on ("webinstans-macros"))
-	       (:file "webinstans" :depends-on ("webinstans-macros"))))
+	       (:file "webinstans-server" :depends-on ("webinstans-macros"))))
 
 (defpackage #:webinstans
   (:use #:common-lisp #:instans) ; #:lisp-unit 
