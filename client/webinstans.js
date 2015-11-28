@@ -208,7 +208,7 @@ function onMessage(evt)
 	if (status == "failed") {
 	    $('#executionInfo').addClass('executionFailed');
 	}
-	// makeCurrentOp(0);
+	makeCurrentOp(0);
 	// showEdgeTraverseInfo();
 	// for (var k = 0 ; k <= trackCounter; k++) {
 	//     highlightTrackEnterOperations(k);
@@ -250,6 +250,11 @@ function processTrace(trace) {
 	    $(this).text(varMappings[from]);
 	}
     });
+    if (ignoreChecksums) {
+	// $('.checksum').css("visibility", "visible");
+	$('.checksum').css("display", "none");
+	$('.checksum').next('.listSeparator').css("display", "none");
+    }
 }
 
 function getOrInitialize(map, key) {
@@ -352,7 +357,7 @@ function callToHTML(cmd, operation, jsonParams) {
     return span("cmd", cmd) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, open='(', close=')');
 }
 
-function jsonListToHTML(list, open='[', close=']', separator=', ') {
+function jsonListToHTML(list, open='[', close=']', separator='<span class="listSeparator">, </span>') {
     var converted = []
     for (var i in list) {
 	var o = list[i];

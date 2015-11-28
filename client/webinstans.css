@@ -98,9 +98,9 @@
     font-weight: bold;
 }
 
-.checksum {
-    display: none;
-}
+/* .checksum { */
+/*     display: none; */
+/* } */
 .niceToKnow {
     display: none;
     color: gray;
