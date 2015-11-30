@@ -84,7 +84,7 @@ function init()
     // $( document ).tooltip({
     // 	items: '*:not(.ui-dialog-titlebar-close)'
     // });
-    showElement('#varInfo', false);
+    // showElement('#varInfo', false);
     showElement('#varMenu', false);
 }
 
@@ -162,7 +162,9 @@ function onMessage(evt)
 	var mappings = jQuery.parseJSON(args);
 	for (var i in mappings) {
 	    var mapping = mappings[i];
-	    $('#varMappings').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
+	    // $('#varMappings').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
+	    var fromVarHtml = jsonToHTML(mapping[0]);
+	    $('#varMappings').append('<li>' + fromVarHtml + '<ul><li id="define var">Show nodes defining ' + fromVarHtml + '</li><li id="use var">Show nodes using ' + fromVarHtml + '</ul></li>');
 	    var from = mapping[1]["value"];
 	    var to = mapping[0]["value"];
 	    // alert('from ' + from + ' to ' + to);
@@ -178,7 +180,7 @@ function onMessage(evt)
 	    }
 	}
 	showElement('#varMappings', true);
-	showElement('#varInfo', true);
+	// showElement('#varInfo', true);
     } else if (cmd == "defining-nodes") {
 	var parsedList = jQuery.parseJSON(args);
 	for (var i in parsedList) {
@@ -289,7 +291,7 @@ function showVarPopupMenuDialog(v) {
     $('#varMenu').menu();
     $('#varMenu').draggable();
     showElement('#varMenu', true);
-    showElement('#varInfo', true);
+    // showElement('#varInfo', true);
     // $('#varPopupMenuDialog').dialog("open");
 }
 
