@@ -61,13 +61,31 @@ function init()
     $('#initializeInstans').click(function() {
 	launchInstans();
     });  
-    $('#getDot').click(function() {
-	getDot();
-    }); 
+    // $('#getDot').click(function() {
+    // 	getDot();
+    // }); 
     $('#runInstans').click(function() {
 	runInstans();
     });
-    $( document ).tooltip();
+    // $( "#varPopupMenuDialog" ).dialog({
+    // 	dialogClass: "no-close",
+    // 	autoOpen: false,
+    // 	show: {
+    //         effect: "blind",
+    //         duration: 1000
+    // 	},
+    // 	hide: {
+    //         effect: "explode",
+    //         duration: 1000
+    // 	}
+    // });
+    // $( "#varPopupMenu" ).menu();
+    // $( document ).tooltip();
+    // $( document ).tooltip({
+    // 	items: '*:not(.ui-dialog-titlebar-close)'
+    // });
+    showElement('#varInfo', false);
+    showElement('#varMenu', false);
 }
 
 function testWebSocket()
@@ -100,6 +118,14 @@ function currentNodeCss(command, operation) {
 
 var seenMessage = -1;
 
+function showElement(selector, on) {
+    if (on) {
+	$(selector).css("display", "block");
+    } else {
+	$(selector).css("display", "none");
+    }
+}
+
 function onMessage(evt)
 {
     // writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
@@ -131,11 +157,8 @@ function onMessage(evt)
 	$('#graph').width(width+2*margin);
         $('#graph' ).scrollTop( 0 );
         $('#graph' ).scrollLeft( 0 );
-	$('#graph').css("visibility", "visible");
-	$('#graph').css("display", "block");
+	showElement('#graph', true);
     } else if (cmd == "var-mappings") {
-	$('#varMappings').css("visibility", "visible");
-	$('#varMappings').css("display", "block");
 	var mappings = jQuery.parseJSON(args);
 	for (var i in mappings) {
 	    var mapping = mappings[i];
@@ -154,6 +177,8 @@ function onMessage(evt)
 		reverseVarMappings[to] = from;
 	    }
 	}
+	showElement('#varMappings', true);
+	showElement('#varInfo', true);
     } else if (cmd == "defining-nodes") {
 	var parsedList = jQuery.parseJSON(args);
 	for (var i in parsedList) {
@@ -196,12 +221,10 @@ function onMessage(evt)
     // 	}
     } else if (cmd == "trace") {
 	var parsedTrace = jQuery.parseJSON(args);
-    	$('#ops').css("visibility", "visible");
-    	$('#ops').css("display", "block");
+	showElement('#ops', true);
 	processTrace(parsedTrace);
     } else if (cmd == "end") {
-	$('#player').css("visibility", "visible");
-	$('#player').css("display", "block");
+	showElement('#player', true);
 	var status = stringBefore(args, ' ');
 	var rest = stringAfter(args, ' ');
 	$('#executionInfo').text('Execution ' + args + '. ' + $('#ops div').length + ' operations');
@@ -213,6 +236,9 @@ function onMessage(evt)
 	// for (var k = 0 ; k <= trackCounter; k++) {
 	//     highlightTrackEnterOperations(k);
 	// }
+	$('.var').click(function() {
+	    showVarPopupMenuDialog($(this).text());
+	});
     }
 }
 
@@ -251,10 +277,20 @@ function processTrace(trace) {
 	}
     });
     if (ignoreChecksums) {
-	// $('.checksum').css("visibility", "visible");
-	$('.checksum').css("display", "none");
+	showElement('.checksum', false);
 	$('.checksum').next('.listSeparator').css("display", "none");
     }
+}
+
+function showVarPopupMenuDialog(v) {
+    // $('#varPopupMenuDialog').dialog( "option", "title", 'Operations on var ' + v);
+    // $('#varPopupMenuDialog').html('<ul id="varPopupMenu"><li id="define var">Show nodes defining ' + v + '</li><li id="use var">Show nodes using ' + v + '</li></ul>');
+    $('#varMenu').html('<li class="ui-widget-header">Commands</li><li id="define var">Show nodes defining ' + v + '</li><li id="use var">Show nodes using ' + v + '</li><li>Cancel</li>');
+    $('#varMenu').menu();
+    $('#varMenu').draggable();
+    showElement('#varMenu', true);
+    showElement('#varInfo', true);
+    // $('#varPopupMenuDialog').dialog("open");
 }
 
 function getOrInitialize(map, key) {

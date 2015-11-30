@@ -139,3 +139,35 @@
 .string::after {
     content: "\"";
 }
+.varMapping {
+    margin: 1px;
+    font-size: smaller;
+}
+/* #varPopupMenu { */
+/*     font-size: smaller; */
+/* } */
+#varInfo {
+    display: -webkit-flex;
+    display: flex;
+    width: 60%;
+    height: 250px;
+    /* background-color: lightgrey; */
+}
+#varMappings {
+    /* background-color: cornflowerblue; */
+    width: 50%;
+    height: 10%;
+    margin: 2px;
+}
+#varMenu {
+    /* background-color: cornflowerblue; */
+    width: 50%;
+    height: 10%;
+    margin: 2px;
+}
+.ui-menu-itme {
+    font-size: smaller;
+}
+/* .ui-dialog-title { */
+/*     font-size: smaller; */
+/* } */
