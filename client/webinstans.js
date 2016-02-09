@@ -11,6 +11,7 @@ var currentOp = null;
 var traceLevel = 0;
 var traceLevelIndent = 2;
 var definingNodes = new Object();
+var usingNodes = new Object();
 var prevNode = 'missing';
 var prevOperation = 'missing';
 var prevToken = 'missing';
@@ -19,8 +20,10 @@ var ignoreChecksums = true;
 var trackCounter = 0;
 var trackEnterOps = [];
 var opTrackMapping = [];
-var varMappings = new Object();
-var reverseVarMappings = new Object();
+var varNumericToSymbolicMapping = new Object();
+var varSymbolicToNumericMapping = new Object();
+var tokenStores = {};
+var nodeState = {};
 
 // Auxiliary functions
 function stringBefore(str, delim) {
@@ -35,7 +38,7 @@ function init()
 {
     log = document.getElementById("log");
     graph = document.getElementById("graph");
-    testWebSocket();
+    initWebSocket();
     $('#rewindButton').click(function() {
 	makeCurrentOp(0);
     });
@@ -88,7 +91,7 @@ function init()
     showElement('#varMenu', false);
 }
 
-function testWebSocket()
+function initWebSocket()
 {
     websocket = new WebSocket(wsUri);
     websocket.onopen = function(evt) { onOpen(evt) };
@@ -120,17 +123,31 @@ var seenMessage = -1;
 
 function showElement(selector, on) {
     if (on) {
+	$(selector).css("visibility", "visible");
 	$(selector).css("display", "block");
     } else {
+	$(selector).css("visibility", "hidden");
 	$(selector).css("display", "none");
     }
 }
 
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
+
 function onMessage(evt)
 {
-    // writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
-    //    websocket.close();
     var data = evt.data;
+    var maxlen = 100;
+    if (data.length > maxlen) {
+	writeToLog('<span style="color: green;">Message begins: ' + escapeHtml(data.substr(0, maxlen))+' ...</span>');
+    } else {
+	writeToLog('<span style="color: green;">Message begins: ' + escapeHtml(data)+'</span>');
+    }
+    //    websocket.close();
     var messageNoStr = stringBefore(data, ' ');
     var messageNo = parseInt(messageNoStr);
     if (messageNo != seenMessage + 1) {
@@ -141,9 +158,9 @@ function onMessage(evt)
     data = stringAfter(data, ' ');
     var cmd = stringBefore(data, ' ');
     var args = stringAfter(data, ' ');
-    writeToLog('<span style="color: blue;">CMD: ' + cmd+'</span>');
+    writeToLog('<span style="color: brown;">Trying to dispatch ' + cmd+'</span>');
     if (cmd == "dot-result") {
-	//         writeToLog('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
+	writeToLog('<span style="color: blue;">Dot-result </span>');
         var graph = args;
         // writeToLog('<span style="color: blue;">GRAPH: </span>');
         // document.body.innerHTML += Viz(graph);
@@ -159,35 +176,47 @@ function onMessage(evt)
         $('#graph' ).scrollLeft( 0 );
 	showElement('#graph', true);
     } else if (cmd == "var-mappings") {
+	writeToLog('<span style="color: blue;">Var-mappings</span>');
 	var mappings = jQuery.parseJSON(args);
 	for (var i in mappings) {
 	    var mapping = mappings[i];
-	    // $('#varMappings').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
+	    // $('#varNumericToSymbolicMapping').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
 	    var fromVarHtml = jsonToHTML(mapping[0]);
-	    $('#varMappings').append('<li>' + fromVarHtml + '<ul><li id="define var">Show nodes defining ' + fromVarHtml + '</li><li id="use var">Show nodes using ' + fromVarHtml + '</ul></li>');
+	    $('#varNumericToSymbolicMapping').append('<li>' + fromVarHtml + '<ul><li id="define var">Show nodes defining ' + fromVarHtml + '</li><li id="use var">Show nodes using ' + fromVarHtml + '</ul></li>');
 	    var from = mapping[1]["value"];
 	    var to = mapping[0]["value"];
 	    // alert('from ' + from + ' to ' + to);
-	    if (typeof varMappings[from] != "undefined") {
-		alert("Variable " + from + " already mapped to " + varMappings[from]);
+	    if (typeof varNumericToSymbolicMapping[from] != "undefined") {
+		alert("Variable " + from + " already mapped to " + varNumericToSymbolicMapping[from]);
 	    } else {
-		varMappings[from] = to;
+		varNumericToSymbolicMapping[from] = to;
 	    }
-	    if (typeof reverseVarMappings[to] != "undefined") {
-		alert("Variable " + to + " already mapped to " + reverseVarMappings[to]);
+	    if (typeof varSymbolicToNumericMapping[to] != "undefined") {
+		alert("Variable " + to + " already mapped to " + varSymbolicToNumericMapping[to]);
 	    } else {
-		reverseVarMappings[to] = from;
+		varSymbolicToNumericMapping[to] = from;
 	    }
 	}
-	showElement('#varMappings', true);
+	showElement('#varNumericToSymbolicMapping', true);
 	// showElement('#varInfo', true);
     } else if (cmd == "defining-nodes") {
+	writeToLog('<span style="color: blue;">Defining-nodes</span>');
 	var parsedList = jQuery.parseJSON(args);
 	for (var i in parsedList) {
 	    var item = parsedList[i];
 	    var v = item[0];
 	    var nodes = item[1];
 	    definingNodes[v] = nodes;
+	    // alert(v + ' -> ' + nodes.length + ' nodes');
+	}
+    } else if (cmd == "using-nodes") {
+	writeToLog('<span style="color: blue;">Using-nodes</span>');
+	var parsedList = jQuery.parseJSON(args);
+	for (var i in parsedList) {
+	    var item = parsedList[i];
+	    var v = item[0];
+	    var nodes = item[1];
+	    usingNodes[v] = nodes;
 	    // alert(v + ' -> ' + nodes.length + ' nodes');
 	}
     // } else if (cmd == "enter" || cmd == "exit") {
@@ -222,10 +251,12 @@ function onMessage(evt)
     // 	    addEdgeTraverseInfo(operation, jsonParams, c);
     // 	}
     } else if (cmd == "trace") {
+	writeToLog('<span style="color: blue;">Trace</span>');
 	var parsedTrace = jQuery.parseJSON(args);
 	showElement('#ops', true);
 	processTrace(parsedTrace);
     } else if (cmd == "end") {
+	writeToLog('<span style="color: blue;">End</span>');
 	showElement('#player', true);
 	var status = stringBefore(args, ' ');
 	var rest = stringAfter(args, ' ');
@@ -241,12 +272,13 @@ function onMessage(evt)
 	$('.var').click(function() {
 	    showVarPopupMenuDialog($(this).text());
 	});
+    } else {
+	writeToLog('<span style="color: brown;">Not a command</span>');
     }
 }
 
 function processTrace(trace) {
     // $('#ops').append(parsedTrace);
-    console.log(trace);
     for (var i in trace) {
 	var item = trace[i];
 	var cmd = item["direction"];
@@ -271,16 +303,47 @@ function processTrace(trace) {
     	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
     	    makeCurrentOp(i);
     	});
+	var state = item["state"];
+	if (state) {
+	    var node = parms[0]['value'];
+	    var type = parms[0]['type'];
+	    processState(node, type, state);
+	    $('#traceOp' + i).data('state', state);
+	}
     }
     $('div[class="trace"] span[class="var"]').each(function() {
 	var from = $(this).text();
-	if (typeof varMappings[from] != "undefined") {
-	    $(this).text(varMappings[from]);
+	if (typeof varNumericToSymbolicMapping[from] != "undefined") {
+	    $(this).text(varNumericToSymbolicMapping[from]);
 	}
     });
     if (ignoreChecksums) {
 	showElement('.checksum', false);
 	$('.checksum').next('.listSeparator').css("display", "none");
+    }
+}
+
+function processState(node, type, state) {
+    // console.log('Node ' + node);
+    // console.log(state);
+    if (state['token-store']) {
+	updateTokenStoreState(node, type, state['token-store']);
+    }
+}
+
+function updateTokenStoreState(node, type, newState) {
+    if (newState['type'] == 'boolean' && newState['value'] == false) {
+	newState = {'type': 'token', 'value': []};
+    }
+    var prevStates = tokenStores[node];
+    if (!prevStates) {
+	tokenStores[node] = [ newState ];
+    } else {
+	console.log('Token store state changed in ' + node + ' from');
+	console.log(prevStates[prevStates.length - 1]);
+	console.log('to');
+	console.log(newState);
+	prevStates.push(newState);
     }
 }
 
@@ -447,7 +510,8 @@ function makeCurrentOp(n) {
 	$('#traceOp'+currentOp).removeClass('currentOp');
     }
     currentOp = n;
-    var elem = $('#traceOp'+n);
+    var id = '#traceOp'+n;
+    var elem = $(id);
     elem.addClass('currentOp');
     elem[0].scrollIntoView({behavior: "smooth", block: "end"});
     var cmd = $('#traceOp' + n + ' span[class="cmd"]').html();
@@ -463,6 +527,15 @@ function makeCurrentOp(n) {
 	currentNode = node;
 	savedCss[currentNode] = nodeHighlightSelector(currentNode).css(nodePropNames);
 	nodeHighlightSelector(currentNode).css(currentNodeCss(cmd, operation));
+	var prevNodeState = nodeState[node];
+	var newNodeState = $(id).data('state');
+	if (newNodeState) {
+	    console.log('State of node ' + node + 'changed from ');
+	    console.log(prevNodeState);
+	    console.log('to');
+	    console.log(newNodeState);
+	    nodeState[node] = newNodeState;
+	}
     }
 }
 

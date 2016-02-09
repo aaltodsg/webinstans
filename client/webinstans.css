@@ -38,9 +38,15 @@
     display: flex;
     flex-direction: column;
 }
+#varMappings {
+    /* background-color: cornflowerblue; */
+    width: 50%;
+    height: 10%;
+    margin: 2px;
+}
 #log {
     /* display: none; */
-    width: 20%;
+    width: 90;
     float: left;
     /* background: #ccc none repeat scroll 0 0; */
     border: 3px solid #666;
@@ -152,12 +158,6 @@
     width: 60%;
     height: 250px;
     /* background-color: lightgrey; */
-}
-#varMappings {
-    /* background-color: cornflowerblue; */
-    width: 50%;
-    height: 10%;
-    margin: 2px;
 }
 #varMenu {
     /* background-color: cornflowerblue; */
