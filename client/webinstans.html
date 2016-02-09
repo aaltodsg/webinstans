@@ -21,12 +21,14 @@
 </head>
 <body>
 <h2>Web INSTANS</h2>
+<div id="runContainer">
+<h3>Running INSTANS</h3>
 <div>
-  <p><span>Parameters: </span></p>
+<div>
   <textarea name="parameters" id="parameters" rows="2" cols="140">-d /Users/enu/aaltodsg/instans/tests/input/exists -r simple.rq --input=simple.trig --select-output=simple-output.csv</textarea>
 </div>
 <div id="commands">
-  <button class="commandButton" id="initializeInstans" type="button">Run INSTANS</button>
+  <button class="commandButton" id="initializeInstans" type="button">Run</button>
   <!-- <button class="commandButton" id="getDot" type="button">Get DOT</button> -->
   <!-- <button class="commandButton" id="runInstans" type="button">Run INSTANS</button> -->
 </div>
@@ -36,18 +38,14 @@
     <!-- <div id="numberOfOps"></div> -->
   </div>
   <!-- <div id="buttons" class="clearfix"> -->
-  <div id="player">
-    <i id="rewindButton" class="fa fa-fast-backward playerCommand" style="font-size:24px"></i>
-    <i id="stepBackButton" class="fa fa-step-backward playerCommand" style="font-size:24px"></i>
-    <i id="stopButton" class="fa fa-stop playerCommand" style="font-size:24px"></i>
-    <i id="playButton" class="fa fa-play playerCommand" style="font-size:24px"></i>
-    <i id="pauseButton" class="fa fa-pause playerCommand" style="font-size:24px"></i>
-    <i id="stepForwardButton" class="fa fa-step-forward playerCommand" style="font-size:24px"></i>
-    <i id="endButton" class="fa fa-fast-forward playerCommand" style="font-size:24px"></i>
-  </div>
 </div>
-<!-- <div id="varInfo">Variables -->
-<ul id="varNumericToSymbolicMapping"><li class="ui-widget-header">Variables</li></ul>
+</div>
+</div>
+<div id="varContainer">
+<h3>Variables</h3>
+<!-- <ul id="varNumericToSymbolicMapping"><li class="ui-widget-header">Variables</li></ul> -->
+<div id="varNumericToSymbolicMapping"></div>
+</div>
 <!-- <ul id="varMenu" class="ui-widget-content"></ul> -->
 <!-- <div id="varPopupMenuDialog"> -->
 <!--   <ul id="varPopupMenu"> -->
@@ -57,7 +55,16 @@
 <!-- </div> -->
 <!-- </div> -->
 <!-- <div id="opsLog" class="clearfix"> -->
-<div id="log"></div>
+<div id="logContainer"><h3>Log</h3><div id="log"></div></div>
+<div id="player">
+  <i id="rewindButton" class="fa fa-fast-backward playerCommand" style="font-size:24px"></i>
+  <i id="stepBackButton" class="fa fa-step-backward playerCommand" style="font-size:24px"></i>
+  <i id="stopButton" class="fa fa-stop playerCommand" style="font-size:24px"></i>
+  <i id="playButton" class="fa fa-play playerCommand" style="font-size:24px"></i>
+  <i id="pauseButton" class="fa fa-pause playerCommand" style="font-size:24px"></i>
+  <i id="stepForwardButton" class="fa fa-step-forward playerCommand" style="font-size:24px"></i>
+  <i id="endButton" class="fa fa-fast-forward playerCommand" style="font-size:24px"></i>
+</div>
 <div id="ops"></div>
 <!-- </div> -->
 <div id="graph"></div>

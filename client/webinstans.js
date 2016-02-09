@@ -8,6 +8,7 @@ var currentNode = null;
 var nodePropNames = ['fill', 'stroke'];
 var savedCss = {};
 var currentOp = null;
+var parsedTrace = null;
 var traceLevel = 0;
 var traceLevelIndent = 2;
 var definingNodes = new Object();
@@ -37,6 +38,24 @@ function stringAfter(str, delim) {
 function init()
 {
     log = document.getElementById("log");
+    $(function() {
+	$( "#runContainer" ).accordion({
+	    collapsible: true,
+	    active: false
+	});
+    }); 
+    $(function() {
+	$( "#logContainer" ).accordion({
+	    collapsible: true,
+	    active: false
+	});
+    }); 
+    $(function() {
+	$( "#varContainer" ).accordion({
+	    collapsible: true,
+	    active: false
+	});
+    }); 
     graph = document.getElementById("graph");
     initWebSocket();
     $('#rewindButton').click(function() {
@@ -182,7 +201,7 @@ function onMessage(evt)
 	    var mapping = mappings[i];
 	    // $('#varNumericToSymbolicMapping').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
 	    var fromVarHtml = jsonToHTML(mapping[0]);
-	    $('#varNumericToSymbolicMapping').append('<li>' + fromVarHtml + '<ul><li id="define var">Show nodes defining ' + fromVarHtml + '</li><li id="use var">Show nodes using ' + fromVarHtml + '</ul></li>');
+	    $('#varNumericToSymbolicMapping').append('<li>' + fromVarHtml + '<ul><li class="define-var">Show nodes defining ' + fromVarHtml + '</li><li class="use-var">Show nodes using ' + fromVarHtml + '</ul></li>');
 	    var from = mapping[1]["value"];
 	    var to = mapping[0]["value"];
 	    // alert('from ' + from + ' to ' + to);
@@ -252,7 +271,7 @@ function onMessage(evt)
     // 	}
     } else if (cmd == "trace") {
 	writeToLog('<span style="color: blue;">Trace</span>');
-	var parsedTrace = jQuery.parseJSON(args);
+	parsedTrace = jQuery.parseJSON(args);
 	showElement('#ops', true);
 	processTrace(parsedTrace);
     } else if (cmd == "end") {
@@ -303,13 +322,13 @@ function processTrace(trace) {
     	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
     	    makeCurrentOp(i);
     	});
-	var state = item["state"];
-	if (state) {
-	    var node = parms[0]['value'];
-	    var type = parms[0]['type'];
-	    processState(node, type, state);
-	    $('#traceOp' + i).data('state', state);
-	}
+	// var state = item["state"];
+	// if (state) {
+	//     var node = parms[0]['value'];
+	//     var type = parms[0]['type'];
+	//     processState(node, type, state);
+	//     $('#traceOp' + i).data('state', state);
+	// }
     }
     $('div[class="trace"] span[class="var"]').each(function() {
 	var from = $(this).text();
@@ -321,6 +340,19 @@ function processTrace(trace) {
 	showElement('.checksum', false);
 	$('.checksum').next('.listSeparator').css("display", "none");
     }
+}
+
+function findNodeTraceItem(nodeName, startingFrom=0, forward=true) {
+    var delta = (forward ? 1 : -1);
+    var i = startingFrom + delta;
+    while (0 <= i && i < parsedTrace.length) {
+	console.log(parsedTrace[i]);
+	if (parsedTrace[i]['parameters'][0]['value'] == nodeName) {
+	    return parsedTrace[i];
+	}
+	i += delta;
+    }
+    return null;
 }
 
 function processState(node, type, state) {
@@ -506,16 +538,19 @@ function nodeHighlightSelector(node) {
 }
 
 function makeCurrentOp(n) {
+    // alert('Make current op ' + n);
     if (currentOp != null) {
 	$('#traceOp'+currentOp).removeClass('currentOp');
     }
     currentOp = n;
+    var traceItem = parsedTrace[n];
+    var operation = traceItem['operation'];
     var id = '#traceOp'+n;
     var elem = $(id);
     elem.addClass('currentOp');
     elem[0].scrollIntoView({behavior: "smooth", block: "end"});
     var cmd = $('#traceOp' + n + ' span[class="cmd"]').html();
-    var operation = $('#traceOp' + n + ' span[class="function"]').html();
+    // var operation = $('#traceOp' + n + ' span[class="function"]').html();
     // alert(operation);
     if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
 	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
@@ -527,14 +562,15 @@ function makeCurrentOp(n) {
 	currentNode = node;
 	savedCss[currentNode] = nodeHighlightSelector(currentNode).css(nodePropNames);
 	nodeHighlightSelector(currentNode).css(currentNodeCss(cmd, operation));
-	var prevNodeState = nodeState[node];
-	var newNodeState = $(id).data('state');
-	if (newNodeState) {
+	var newState = traceItem['state'];
+	if (newState) {
+	    var prevTraceItem = findNodeTraceItem(node, n, false);
+	    var prevState = (prevTraceItem ? prevTraceItem['state'] : null);
 	    console.log('State of node ' + node + 'changed from ');
-	    console.log(prevNodeState);
+	    console.log(prevState);
 	    console.log('to');
-	    console.log(newNodeState);
-	    nodeState[node] = newNodeState;
+	    console.log(newState);
+	    nodeState[node] = newState;
 	}
     }
 }

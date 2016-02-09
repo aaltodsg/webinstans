@@ -11,13 +11,13 @@
     display: none;
     border: 3px solid #666;
     width: 20%;
-    float: left;
+    /* float: left; */
     margin: 5px;
     padding: 5px;
     border: 0.5px solid #666;
-    position: relative;
-    top: 50%;
-    overflow: auto;
+    /* position: relative; */
+    /* top: 50%; */
+    /* overflow: auto; */
 }
 /* #commands { */
 /*     /\* border: 3px solid #666; *\/ */
@@ -38,15 +38,16 @@
     display: flex;
     flex-direction: column;
 }
-#varMappings {
+#varNumericToSymbolicMapping {
     /* background-color: cornflowerblue; */
     width: 50%;
     height: 10%;
     margin: 2px;
+    font-size: smaller;
 }
 #log {
     /* display: none; */
-    width: 90;
+    width: 100;
     float: left;
     /* background: #ccc none repeat scroll 0 0; */
     border: 3px solid #666;
@@ -171,3 +172,16 @@
 /* .ui-dialog-title { */
 /*     font-size: smaller; */
 /* } */
+
+#parameters {
+    font-family: monospace;
+    font-size: smaller;
+}
+
+.define-var {
+    font-size: smaller;
+}
+
+.use-var {
+    font-size: smaller;
+}
