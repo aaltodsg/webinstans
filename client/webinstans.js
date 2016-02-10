@@ -570,8 +570,48 @@ function makeCurrentOp(n) {
 	    console.log(prevState);
 	    console.log('to');
 	    console.log(newState);
+	    var diffs = stateDiff(prevState, newState);
+	    if (diffs != null) {
+		console.log('Old tokens removed: ');
+		console.log(diffs[0]);
+		console.log('New tokens added: ');
+		console.log(diffs[1]);
+	    }
 	    nodeState[node] = newState;
 	}
+    }
+}
+
+function fixToken(x) {
+    if (x['type'] == 'boolean' && x['value'] == false) {
+	x['type'] = 'token';
+	x['value'] = [];
+    }
+    return x;
+}
+
+function setDifference(s1, s2) {
+    return s1.filter(function (element, index, array) {
+	return !s2.includes(element);
+    });
+}
+
+function stateDiff(prevState, newState) {
+    if (newState['token-store'] != undefined) {
+	var prevTokens = null;
+	if (prevState == null) {
+	    prevTokens = [];
+	} else {
+	    var prevStore = prevState['token-store'];
+	    fixToken(prevStore);
+	    var prevTokens = prevStore['value'];
+	}
+	var newStore = newState['token-store'];
+	fixToken(newStore);
+	var newTokens = newStore['value'];
+	return [ setDifference(prevTokens, newTokens), setDifference(newTokens, prevTokens) ];
+    } else {
+	return null;
     }
 }
 
