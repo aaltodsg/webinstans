@@ -271,7 +271,10 @@ function onMessage(evt)
     // 	}
     } else if (cmd == "trace") {
 	writeToLog('<span style="color: blue;">Trace</span>');
+	console.log('parsing args');
+	console.log(args);
 	parsedTrace = jQuery.parseJSON(args);
+	console.log(parsedTrace);
 	showElement('#ops', true);
 	processTrace(parsedTrace);
     } else if (cmd == "end") {
@@ -573,42 +576,84 @@ function makeCurrentOp(n) {
 	    var diffs = stateDiff(prevState, newState);
 	    if (diffs != null) {
 		console.log('Old tokens removed: ');
-		console.log(diffs[0]);
+		var oldTokens = diffs[0];
+		for (i in oldTokens) {
+		    console.log('  %o', tokenAsCompactString(oldTokens[i]));
+		}
 		console.log('New tokens added: ');
-		console.log(diffs[1]);
+		var newTokens = diffs[1];
+		for (i in newTokens) {
+		    console.log('  %o', tokenAsCompactString(newTokens[i]));
+		}
 	    }
 	    nodeState[node] = newState;
 	}
     }
 }
 
-function fixToken(x) {
-    if (x['type'] == 'boolean' && x['value'] == false) {
-	x['type'] = 'token';
-	x['value'] = [];
+
+
+// function fixToken(x) {
+//     if (x['type'] == 'boolean' && x['value'] == false) {
+// 	x['type'] = 'token';
+// 	x['value'] = [];
+//     }
+//     return x;
+// }
+
+function filterChecksums(values) {
+    return values.filter(x => x['type'] != 'checksum');
+}
+
+function tokenAsString(token) {
+    function convertValues(v) {
+	if (v instanceof Array) {
+	    return v.map(x => convertValues(x)).join();
+	} else if (v instanceof Object) {
+	    return '{' + Object.keys(v).map(k => k + ': ' + convertValues(v[k])).join(separator=", ") + '}';
+	} else {
+	    return v;
+	}
+	    
     }
-    return x;
+    return token['type'] + '(' + convertValues(token['value']) + ')';
+}
+
+function tokenAsCompactString(token) {
+    function convertValues(v) {
+	if (v instanceof Array) {
+	    return filterChecksums(v).map(x => convertValues(x)).join();
+	} else if (v['type'] == 'binding') {
+	    return varNumericToSymbolicMapping[v['var']['value']] + " = " + v['value']['value'];
+	} else if (v instanceof Object) {
+	    return '{' + Object.keys(v).map(k => k + ': ' + convertValues(v[k])).join(separator=", ") + '}';
+	} else {
+	    return v;
+	}
+	    
+    }
+    return token['type'] + '(' + convertValues(token['value']) + ')';
 }
 
 function setDifference(s1, s2) {
+    // console.log('setDifference(' + s1 + ',' + s2);
     return s1.filter(function (element, index, array) {
 	return !s2.includes(element);
     });
 }
 
 function stateDiff(prevState, newState) {
+    console.log('stateDiff');
+    console.log(prevState);
+    console.log(newState);
     if (newState['token-store'] != undefined) {
 	var prevTokens = null;
 	if (prevState == null) {
 	    prevTokens = [];
 	} else {
-	    var prevStore = prevState['token-store'];
-	    fixToken(prevStore);
-	    var prevTokens = prevStore['value'];
+	    prevTokens = prevState['token-store'];
 	}
-	var newStore = newState['token-store'];
-	fixToken(newStore);
-	var newTokens = newStore['value'];
+	var newTokens = newState['token-store'];
 	return [ setDifference(prevTokens, newTokens), setDifference(newTokens, prevTokens) ];
     } else {
 	return null;

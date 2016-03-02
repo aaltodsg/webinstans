@@ -27,7 +27,7 @@
 
 (defgeneric instans-trace-node-state (node)
   (:method ((this instans::token-store))
-    (cons :token-store (instans::token-store-tokens this)))
+    (list :token-store (instans::token-store-tokens this)))
   (:method ((this instans::join-node))
     (list :alpha-index (and (instans::join-alpha-index this) (instans::index-tokens (instans::join-alpha-index this)))
 	  :beta-index (and (instans::join-beta-index this) (instans::index-tokens (instans::join-beta-index this)))))
@@ -76,7 +76,7 @@
 		       for rest on state by #'cddr
 		       for key = (first rest)
 		       for value = (second rest)
-		       do (format stream "~A~(~S: ~A~)" comma (string key) (sparql-value-to-json value)))
+		       do (format stream "~A~(~S: ~A~)" comma (string key) (sparql-value-to-json value :nil-as-false-p nil)))
 		 (format stream "}")))
 	     (format stream "~%}")))
     (format stream "~&[")
@@ -89,8 +89,9 @@
 (defun json-typed-value (type value)
   (format nil "{ \"type\": \"~A\", \"value\": ~A}" type value))
 
-(defun sparql-value-type-as-json-string (x)
-  (cond ((typep x 'instans::xsd-string-value) "string")
+(defun sparql-value-type-as-json-string (x &key (nil-as-false-p t))
+  (cond ((null x) (if nil-as-false-p "boolean" "list"))
+	((typep x 'instans::xsd-string-value) "string")
 	((typep x 'instans::xsd-boolean-value) "boolean")
 	((typep x 'instans::xsd-integer-value) "integer")
 	((typep x 'instans::xsd-decimal-value) "decimal")
@@ -111,9 +112,11 @@
 	       (t "list")))
 	(t "unknown")))
 
-(defun sparql-value-to-json (x)
-  (let ((type (sparql-value-type-as-json-string x)))
-    (cond ((eq type "token")
+(defun sparql-value-to-json (x &key (nil-as-false-p t))
+  (let* ((tp nil) (r
+  (let ((type (sparql-value-type-as-json-string x :nil-as-false-p nil-as-false-p)))
+    (cond
+	  ((eq type "token")
 	   (token-to-json x))
 	  ((eq type "list")
 	   (list-to-json x))
@@ -129,7 +132,11 @@
 			      ((eq type "keyword")
 			       (instans::sparql-value-to-string (string-downcase (string x))))
 			      (t (instans::sparql-value-to-string x)))))
+	     (setf tp type)
 	     (json-typed-value type value))))))
+	)
+    (logmsg "~%sparql-value-to-json ~S (type ~S) -> ~S" x tp r)
+    r))
 
 (defun sparql-var-json-name (x)
   (string-downcase (instans::uniquely-named-object-name x)))  
@@ -156,6 +163,7 @@
   (format nil "[~{~A~^, ~}]" (mapcar #'sparql-value-to-json list)))
 
 (defun token-to-json (token)
+  (let ((r
   (json-typed-value "token" (format nil "[~{~A~^, ~}]"
 				    (mapcar #'(lambda (x)
 						(cond ((and (consp x) (= 2 (length x)))
@@ -163,4 +171,6 @@
 							     (t (binding-to-json x))))
 						      (t x)))
 					    token))))
-
+	)
+    (logmsg "~%token-to-json ~S -> ~S" token r)
+    r))

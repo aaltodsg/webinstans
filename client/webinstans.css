@@ -1,7 +1,7 @@
 /* Clearfix */
-.clearfix:before, .clearfix:after { content: ""; display: table; }
-.clearfix:after { clear: both; }
-.clearfix { *zoom: 1; }
+/* .clearfix:before, .clearfix:after { content: ""; display: table; } */
+/* .clearfix:after { clear: both; } */
+/* .clearfix { zoom: 1; } */
 
 /* #buttons { */
 /*     width: 100%; */
@@ -47,7 +47,7 @@
 }
 #log {
     /* display: none; */
-    width: 100;
+    width: 100%;
     float: left;
     /* background: #ccc none repeat scroll 0 0; */
     border: 3px solid #666;
@@ -91,7 +91,7 @@
 
 .currentOp {
     background: #00aaff;
-    font-weight: italic;
+    font-style: italic;
 }
 
 .playerCommand {
@@ -154,7 +154,6 @@
 /*     font-size: smaller; */
 /* } */
 #varInfo {
-    display: -webkit-flex;
     display: flex;
     width: 60%;
     height: 250px;
