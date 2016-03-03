@@ -349,7 +349,7 @@ function findNodeTraceItem(nodeName, startingFrom=0, forward=true) {
     var delta = (forward ? 1 : -1);
     var i = startingFrom + delta;
     while (0 <= i && i < parsedTrace.length) {
-	console.log(parsedTrace[i]);
+	// console.log(parsedTrace[i]);
 	if (parsedTrace[i]['parameters'][0]['value'] == nodeName) {
 	    return parsedTrace[i];
 	}
@@ -541,7 +541,7 @@ function nodeHighlightSelector(node) {
 }
 
 function makeCurrentOp(n) {
-    // alert('Make current op ' + n);
+    console.log('>>>> Make current op %d', n);
     if (currentOp != null) {
 	$('#traceOp'+currentOp).removeClass('currentOp');
     }
@@ -555,11 +555,13 @@ function makeCurrentOp(n) {
     var cmd = $('#traceOp' + n + ' span[class="cmd"]').html();
     // var operation = $('#traceOp' + n + ' span[class="function"]').html();
     // alert(operation);
+    // console.log('operation %s', operation)
     if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
 	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
-	var node = $('#traceOp' + n + ' span[class="node"]').html();
-	// alert(cmd + ' ' + operation + ' in node ' + node);
-	if (currentNode) {
+	var node = $('#traceOp' + n + ' span[class="node"]').text().trim();
+	console.log('operation "%s" in node "%s"', operation, node);
+	if (currentNode && savedCss[currentNode]) {
+	    console.log('currentNode was "%s", savedCss = <<<%s>>>', currentNode, savedCss[currentNode]);
 	    nodeHighlightSelector(currentNode).css(savedCss[currentNode]);
 	}
 	currentNode = node;
@@ -569,11 +571,8 @@ function makeCurrentOp(n) {
 	if (newState) {
 	    var prevTraceItem = findNodeTraceItem(node, n, false);
 	    var prevState = (prevTraceItem ? prevTraceItem['state'] : null);
-	    console.log('State of node ' + node + 'changed from ');
-	    console.log(prevState);
-	    console.log('to');
-	    console.log(newState);
-	    var diffs = stateDiff(prevState, newState);
+	    console.log('State of node "%s" changed from "%s" to "%s"', node, prevState, newState);
+	    var diffs = stateDiff(node, prevState, newState);
 	    if (diffs != null) {
 		console.log('Old tokens removed: ');
 		var oldTokens = diffs[0];
@@ -589,6 +588,7 @@ function makeCurrentOp(n) {
 	    nodeState[node] = newState;
 	}
     }
+    console.log('node "%s", elem.class = "%s"', node, elem.attr('class'));
 }
 
 
@@ -636,13 +636,13 @@ function tokenAsCompactString(token) {
 }
 
 function setDifference(s1, s2) {
-    // console.log('setDifference(' + s1 + ',' + s2);
+    console.log('setDifference(s1=%o, s2=%o)', s1, s2);
     return s1.filter(function (element, index, array) {
 	return !s2.includes(element);
     });
 }
 
-function stateDiff(prevState, newState) {
+function stateDiff(node, prevState, newState) {
     console.log('stateDiff');
     console.log(prevState);
     console.log(newState);
@@ -654,6 +654,11 @@ function stateDiff(prevState, newState) {
 	    prevTokens = prevState['token-store'];
 	}
 	var newTokens = newState['token-store'];
+	$('#'+node+' text:contains("tokens")').html(newTokens.length + ' tokens');
+	console.log('%o has %d tokens', node, newTokens.length);
+	for (i in newTokens) {
+	    console.log('  token %o', tokenAsCompactString(newTokens[i]));
+	}
 	return [ setDifference(prevTokens, newTokens), setDifference(newTokens, prevTokens) ];
     } else {
 	return null;
