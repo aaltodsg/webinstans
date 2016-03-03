@@ -81,7 +81,7 @@
     (when instans
       (let ((dot-file-name (instans::create-temp-file-name)))
 	(with-open-file (stream dot-file-name :direction :output :if-exists :error)
-	  (instans::print-dot instans :stream stream :show-vars-p nil :html-labels-p nil))
+	  (instans::print-dot instans :stream stream :show-vars-p nil :html-labels-p nil :binding-info-box-p t))
 	(instans::shell-cmd "dot" "-Tsvg" "-O" dot-file-name)
 	(let ((svg (instans::file-contents-to-string (format nil "~A.svg" dot-file-name))))
 	  (logmsg "get-dot: dot-result ~A" (message-sample svg))
