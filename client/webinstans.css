@@ -165,7 +165,7 @@
     height: 10%;
     margin: 2px;
 }
-.ui-menu-itme {
+.ui-menu-item {
     font-size: smaller;
 }
 /* .ui-dialog-title { */
@@ -183,4 +183,13 @@
 
 .use-var {
     font-size: smaller;
+}
+
+.token-store {
+    font-size: smaller;
+}
+
+.ui-dialog-title {
+    /* color: red; */
+    font-size: 50%;
 }

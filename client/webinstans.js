@@ -294,6 +294,7 @@ function onMessage(evt)
 	$('.var').click(function() {
 	    showVarPopupMenuDialog($(this).text());
 	});
+	addNodeButtonHandlers();
     } else {
 	writeToLog('<span style="color: brown;">Not a command</span>');
     }
@@ -345,7 +346,48 @@ function processTrace(trace) {
     }
 }
 
-function findNodeTraceItem(nodeName, startingFrom=0, forward=true) {
+function createStoreDialog(id) {
+    $('#' + id).each(function () {
+	var dialog_id = id + '_tokens';
+	if (!document.getElementById(dialog_id)) {
+	    $('body').append('<div id="' + dialog_id + '" title="' + id + '"><div>&nbsp;</div></div>');
+	    $('#' + dialog_id).dialog({width: 40, height: 30, autoOpen: false});
+	    $('#' + dialog_id).attr('class', 'token-store');
+	    $(this).click(function(e) {
+		$('#' + dialog_id).dialog('open');
+		// var pos = $(e.delegateTarget).position();
+		// var x = pos.x;
+		// var y = pos.y;
+		// var width = e.delegateTarget.offsetWidth;
+		// var height = e.delegateTarget.offsetHeight;
+		// console.log('click on ' + id + ', target = %o [%o], pos=%o, [%o, %o]', e.delegateTarget, typeof(e.delegateTarget), pos, width, height);
+		// $('#' + dialog_id).css({position: 'absolute', top: y, left: x});
+		$('#' + dialog_id).dialog('widget').position({
+		    // my: 'left top',
+		    // at: 'left bottom',
+		    my: 'center top',
+		    at: 'center bottom',
+		    of: e.delegateTarget
+		});
+	    });
+	}
+    });
+}
+
+function addNodeButtonHandlers() {
+    console.log('----> addNodeButtonHandlers');
+    $('g[class="node"]').each(function () {
+    	console.log('Testing %o', $(this));
+    	var id = $(this).attr('id');
+    	if (id && id.match(/^(beta|alpha)_memory\d+$/)) {
+    	    console.log('Found %o', id);
+	    createStoreDialog(id);
+    	}
+    });
+    console.log('<---- addNodeButtonHandlers');
+}
+
+function findNodeTraceItem(nodeName, startingFrom, forward) {
     var delta = (forward ? 1 : -1);
     var i = startingFrom + delta;
     while (0 <= i && i < parsedTrace.length) {
@@ -420,7 +462,7 @@ function addEdgeTraverseInfo(operation, jsonParams, opNo) {
     } else if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
 	       operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
 	var node = jsonParams[0]["value"];
-	var elem = jQuery('<span>'+jsonListToHTML(jsonParams[1]["value"])+'</span>');
+	var elem = jQuery('<span>'+jsonListToHTML(jsonParams[1]["value"], '[', ']')+'</span>');
 	var token = elem.text();
 	// console.log('token = '+token);
 	// console.log('params = ' + jsonParams[1]);
@@ -490,10 +532,11 @@ function span(cls, txt) {
 
 function callToHTML(cmd, operation, jsonParams) {
     // alert(jsonParams);
-    return span("cmd", cmd) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, open='(', close=')');
+    return span("cmd", cmd) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, '(', ')');
 }
 
-function jsonListToHTML(list, open='[', close=']', separator='<span class="listSeparator">, </span>') {
+function jsonListToHTML(list, open, close) {
+    var separator='<span class="listSeparator">, </span>';
     var converted = []
     for (var i in list) {
 	var o = list[i];
@@ -514,7 +557,7 @@ function htmlEncode(string)
 
 function jsonToHTML(o) {
     if ($.isArray(o)) {
-	return jsonListToHTML(o);
+	return jsonListToHTML(o, '[', ']');
     } else {
 	var type = o["type"];
 	var value = o["value"];
@@ -529,7 +572,7 @@ function jsonToHTML(o) {
 	case "binding":
 	    return '<span class="binding">' + jsonToHTML(o["var"]) + ' = ' + jsonToHTML(o["value"]) + '</span>';
 	case "token":
-	    return jsonListToHTML(value);
+	    return jsonListToHTML(value, '[', ']');
 	default:
 	    return span(type, value);
 	}
@@ -557,7 +600,9 @@ function makeCurrentOp(n) {
     // alert(operation);
     // console.log('operation %s', operation)
     if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
-	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token") {
+	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token" ||
+	operation == "token-store-put" || operation == "token-store-put-if-missing" || 
+	operation == "token-store-remove" || operation == "token-store-remove-if-exists" || operation == "token-store-clear") {
 	var node = $('#traceOp' + n + ' span[class="node"]').text().trim();
 	console.log('operation "%s" in node "%s"', operation, node);
 	if (currentNode && savedCss[currentNode]) {
@@ -569,6 +614,7 @@ function makeCurrentOp(n) {
 	nodeHighlightSelector(currentNode).css(currentNodeCss(cmd, operation));
 	var newState = traceItem['state'];
 	if (newState) {
+	    // createStoreDialog(node);
 	    var prevTraceItem = findNodeTraceItem(node, n, false);
 	    var prevState = (prevTraceItem ? prevTraceItem['state'] : null);
 	    console.log('State of node "%s" changed from "%s" to "%s"', node, prevState, newState);

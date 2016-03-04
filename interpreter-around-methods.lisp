@@ -120,3 +120,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmethod instans::token-store-put :around ((node instans::token-store) token)
+  (trace-wrap-call (list :token-store-put node token) :state-form (instans-trace-node-state node)))
+
+(defmethod instans::token-store-put-if-missing :around ((node instans::token-store) token)
+  (trace-wrap-call (list :token-store-put-if-missing node token) :state-form (instans-trace-node-state node)))
+
+(defmethod instans::token-store-remove :around ((node instans::token-store) token)
+  (trace-wrap-call (list :token-store-remove node token) :state-form (instans-trace-node-state node)))
+
+(defmethod instans::token-store-remove-if-exists :around ((node instans::token-store) token)
+  (trace-wrap-call (list :token-store-remove-if-exists node token) :state-form (instans-trace-node-state node)))
+
+(defmethod instans::token-store-clear :around ((node instans::token-store))
+  (trace-wrap-call (list :token-store-clear node) :state-form (instans-trace-node-state node)))
