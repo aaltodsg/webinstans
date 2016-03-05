@@ -34,10 +34,10 @@
     width: 100%;
     margin: 0 auto;
 }
-#execution {
-    display: flex;
-    flex-direction: column;
-}
+/* #execution { */
+/*     display: flex; */
+/*     flex-direction: column; */
+/* } */
 #varNumericToSymbolicMapping {
     /* background-color: cornflowerblue; */
     width: 50%;
@@ -45,23 +45,22 @@
     margin: 2px;
     font-size: smaller;
 }
-#log {
-    /* display: none; */
-    width: 100%;
-    float: left;
-    /* background: #ccc none repeat scroll 0 0; */
-    border: 3px solid #666;
-    margin: 5px;
-    padding: 5px;
-    height: 200px;
-    position: relative;
-    overflow: auto;
-}
+/* #log { */
+/*     /\* display: none; *\/ */
+/*     width: 100%; */
+/*     float: left; */
+/*     /\* background: #ccc none repeat scroll 0 0; *\/ */
+/*     border: 3px solid #666; */
+/*     margin: 5px; */
+/*     padding: 5px; */
+/*     height: 200px; */
+/*     position: relative; */
+/*     overflow: auto; */
+/* } */
 #ops {
     display: none;
     width: 100%;
-    width: 75%;
-    float: left;
+    /* float: left; */
     /* background: #ccc none repeat scroll 0 0; */
     border: 3px solid #666;
     margin: 5px;
@@ -73,16 +72,16 @@
 #vars {
     display: none;
 }
-#graph {
-    display: none;
-    /* background: #ccc none repeat scroll 0 0; */
-    /* border: 3px solid #666; */
-    margin: 5px;
-    padding: 5px;
-    position: relative;
-    /* <!-- overflow: auto; --> */
-    visibility: hidden;
-}
+/* #graph { */
+/*     display: none; */
+/*     /\* background: #ccc none repeat scroll 0 0; *\/ */
+/*     /\* border: 3px solid #666; *\/ */
+/*     margin: 5px; */
+/*     padding: 5px; */
+/*     position: relative; */
+/*     /\* <!-- overflow: auto; --> *\/ */
+/*     visibility: hidden; */
+/* } */
 
 .trace {
     font-family: monospace;

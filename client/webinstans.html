@@ -21,41 +21,30 @@
 </head>
 <body>
 <h2>Web INSTANS</h2>
-<div id="runContainer">
+<div id="tabs">
+  <ul>
+    <li><a href="#run-tab">Running INSTANS</a></li>
+    <li><a href="#graph-tab">Graph</a></li>
+    <li><a href="#log-tab">Log</a></li>
+  </ul>
+
+<div id="run-tab">
 <h3>Running INSTANS</h3>
-<div>
 <div>
   <textarea name="parameters" id="parameters" rows="2" cols="140">-d /Users/enu/aaltodsg/instans/tests/input/exists -r simple.rq --input=simple.trig --select-output=simple-output.csv</textarea>
 </div>
 <div id="commands">
   <button class="commandButton" id="initializeInstans" type="button">Run</button>
-  <!-- <button class="commandButton" id="getDot" type="button">Get DOT</button> -->
-  <!-- <button class="commandButton" id="runInstans" type="button">Run INSTANS</button> -->
 </div>
 <div id="execution">
   <div id="executionInfo">
-    <!-- <div id="executionStatus"></div> -->
-    <!-- <div id="numberOfOps"></div> -->
   </div>
-  <!-- <div id="buttons" class="clearfix"> -->
 </div>
 </div>
-</div>
-<div id="varContainer">
-<h3>Variables</h3>
-<!-- <ul id="varNumericToSymbolicMapping"><li class="ui-widget-header">Variables</li></ul> -->
-<div id="varNumericToSymbolicMapping"></div>
-</div>
-<!-- <ul id="varMenu" class="ui-widget-content"></ul> -->
-<!-- <div id="varPopupMenuDialog"> -->
-<!--   <ul id="varPopupMenu"> -->
-<!--     <li>Nodes that define</li> -->
-<!--     <li>Nodes that use</li> -->
-<!--   </ul> -->
-<!-- </div> -->
-<!-- </div> -->
-<!-- <div id="opsLog" class="clearfix"> -->
-<div id="logContainer"><h3>Log</h3><div id="log"></div></div>
+
+<div id="graph-tab">
+<h3>Execution trace</h3>
+<div id="ops"></div>
 <div id="player">
   <i id="rewindButton" class="fa fa-fast-backward playerCommand" style="font-size:24px"></i>
   <i id="stepBackButton" class="fa fa-step-backward playerCommand" style="font-size:24px"></i>
@@ -65,8 +54,13 @@
   <i id="stepForwardButton" class="fa fa-step-forward playerCommand" style="font-size:24px"></i>
   <i id="endButton" class="fa fa-fast-forward playerCommand" style="font-size:24px"></i>
 </div>
-<div id="ops"></div>
-<!-- </div> -->
 <div id="graph"></div>
 <div id="edgeTraverseInfo"></div>
+</div>
+
+<div id="log-tab">
+  <h3>Log</h3>
+  <div id="log"></div>
+</div>
+</div>
 </body>

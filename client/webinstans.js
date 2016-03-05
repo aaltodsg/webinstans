@@ -37,25 +37,26 @@ function stringAfter(str, delim) {
 
 function init()
 {
+    $('#tabs').tabs();
     log = document.getElementById("log");
-    $(function() {
-	$( "#runContainer" ).accordion({
-	    collapsible: true,
-	    active: false
-	});
-    }); 
-    $(function() {
-	$( "#logContainer" ).accordion({
-	    collapsible: true,
-	    active: false
-	});
-    }); 
-    $(function() {
-	$( "#varContainer" ).accordion({
-	    collapsible: true,
-	    active: false
-	});
-    }); 
+    // $(function() {
+    // 	$( "#runContainer" ).accordion({
+    // 	    collapsible: true,
+    // 	    active: false
+    // 	});
+    // }); 
+    // $(function() {
+    // 	$( "#logContainer" ).accordion({
+    // 	    collapsible: true,
+    // 	    active: false
+    // 	});
+    // }); 
+    // $(function() {
+    // 	$( "#varContainer" ).accordion({
+    // 	    collapsible: true,
+    // 	    active: false
+    // 	});
+    // }); 
     graph = document.getElementById("graph");
     initWebSocket();
     $('#rewindButton').click(function() {
@@ -295,6 +296,7 @@ function onMessage(evt)
 	    showVarPopupMenuDialog($(this).text());
 	});
 	addNodeButtonHandlers();
+	$('#tabs').tabs('refresh');
     } else {
 	writeToLog('<span style="color: brown;">Not a command</span>');
     }
