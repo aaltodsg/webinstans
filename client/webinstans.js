@@ -1,7 +1,7 @@
 //  var wsUri = "ws://echo.websocket.org/";
 var wsUri = "ws://localhost:12345/bongo";
 var log;
-var graph;
+var instansResults = {};
 var websocket;
 var isRunning = false;
 var currentNode = null;
@@ -57,7 +57,6 @@ function init()
     // 	    active: false
     // 	});
     // }); 
-    graph = document.getElementById("graph");
     initWebSocket();
     $('#rewindButton').click(function() {
 	makeCurrentOp(0);
@@ -158,6 +157,73 @@ function escapeHtml(str) {
 }
 
 
+function handleInstansResults() {
+    $('#graph').html(instansResults.dotResultGraph);
+    showElement('#graph', true);
+    var varMappings = jQuery.parseJSON(instansResults.varMappings);
+    for (var i in varMappings) {
+	var mapping = varMappings[i];
+	// $('#varNumericToSymbolicMapping').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
+	var fromVarHtml = jsonToHTML(mapping[0]);
+	$('#varNumericToSymbolicMapping').append('<li>' + fromVarHtml + '<ul><li class="define-var">Show nodes defining ' + fromVarHtml + '</li><li class="use-var">Show nodes using ' + fromVarHtml + '</ul></li>');
+	var from = mapping[1]["value"];
+	var to = mapping[0]["value"];
+	// alert('from ' + from + ' to ' + to);
+	if (typeof varNumericToSymbolicMapping[from] != "undefined") {
+	    alert("Variable " + from + " already mapped to " + varNumericToSymbolicMapping[from]);
+	} else {
+	    varNumericToSymbolicMapping[from] = to;
+	}
+	if (typeof varSymbolicToNumericMapping[to] != "undefined") {
+	    alert("Variable " + to + " already mapped to " + varSymbolicToNumericMapping[to]);
+	} else {
+	    varSymbolicToNumericMapping[to] = from;
+	}
+    }
+    showElement('#varNumericToSymbolicMapping', true);
+    // showElement('#varInfo', true);
+    var dn = jQuery.parseJSON(instansResults.definingNodes);
+    for (var i in dn) {
+	var item = dn[i];
+	var v = item[0];
+	var nodes = item[1];
+	definingNodes[v] = nodes;
+	// alert(v + ' -> ' + nodes.length + ' nodes');
+    }
+    var un = jQuery.parseJSON(instansResults.usingNodes);
+    for (var i in un) {
+	var item = un[i];
+	var v = item[0];
+	var nodes = item[1];
+	usingNodes[v] = nodes;
+	// alert(v + ' -> ' + nodes.length + ' nodes');
+    }
+    // console.log('parsing args');
+    // console.log(instansResults.trace);
+    parsedTrace = jQuery.parseJSON(instansResults.trace);
+    console.log(parsedTrace);
+    showElement('#ops', true);
+    processTrace(parsedTrace);
+    showElement('#player', true);
+    var status = stringBefore(instansResults.end, ' ');
+    var rest = stringAfter(instansResults.end, ' ');
+    $('#executionInfo').text('Execution ' + instansResults.end + '. ' + $('#ops div').length + ' operations');
+    if (status == "failed") {
+	$('#executionInfo').addClass('executionFailed');
+    }
+    makeCurrentOp(0);
+    // showEdgeTraverseInfo();
+    // for (var k = 0 ; k <= trackCounter; k++) {
+    //     highlightTrackEnterOperations(k);
+    // }
+    $('.var').click(function() {
+	showVarPopupMenuDialog($(this).text());
+    });
+    addNodeButtonHandlers();
+    $('#tabs').tabs('refresh');
+    return true;
+}
+
 function onMessage(evt)
 {
     var data = evt.data;
@@ -179,87 +245,20 @@ function onMessage(evt)
     var cmd = stringBefore(data, ' ');
     var args = stringAfter(data, ' ');
     writeToLog('<span style="color: brown;">Trying to dispatch ' + cmd+'</span>');
-    if (cmd == "dot-result") {
-	writeToLog('<span style="color: blue;">Dot-result </span>');
-        var graph = args;
-        // writeToLog('<span style="color: blue;">GRAPH: </span>');
-        // document.body.innerHTML += Viz(graph);
-	$('#graph').html(graph);
-	showElement('#graph', true);
-    } else if (cmd == "var-mappings") {
-	writeToLog('<span style="color: blue;">Var-mappings</span>');
-	var mappings = jQuery.parseJSON(args);
-	for (var i in mappings) {
-	    var mapping = mappings[i];
-	    // $('#varNumericToSymbolicMapping').append('<div class="varMapping"></div>').find('div:last-child').append(jsonToHTML(mapping[0])).append('<span class="niceToKnow"> (internally ' + jsonToHTML(mapping[1]) + ')</span>');
-	    var fromVarHtml = jsonToHTML(mapping[0]);
-	    $('#varNumericToSymbolicMapping').append('<li>' + fromVarHtml + '<ul><li class="define-var">Show nodes defining ' + fromVarHtml + '</li><li class="use-var">Show nodes using ' + fromVarHtml + '</ul></li>');
-	    var from = mapping[1]["value"];
-	    var to = mapping[0]["value"];
-	    // alert('from ' + from + ' to ' + to);
-	    if (typeof varNumericToSymbolicMapping[from] != "undefined") {
-		alert("Variable " + from + " already mapped to " + varNumericToSymbolicMapping[from]);
-	    } else {
-		varNumericToSymbolicMapping[from] = to;
-	    }
-	    if (typeof varSymbolicToNumericMapping[to] != "undefined") {
-		alert("Variable " + to + " already mapped to " + varSymbolicToNumericMapping[to]);
-	    } else {
-		varSymbolicToNumericMapping[to] = from;
-	    }
-	}
-	showElement('#varNumericToSymbolicMapping', true);
-	// showElement('#varInfo', true);
-    } else if (cmd == "defining-nodes") {
-	writeToLog('<span style="color: blue;">Defining-nodes</span>');
-	var parsedList = jQuery.parseJSON(args);
-	for (var i in parsedList) {
-	    var item = parsedList[i];
-	    var v = item[0];
-	    var nodes = item[1];
-	    definingNodes[v] = nodes;
-	    // alert(v + ' -> ' + nodes.length + ' nodes');
-	}
-    } else if (cmd == "using-nodes") {
-	writeToLog('<span style="color: blue;">Using-nodes</span>');
-	var parsedList = jQuery.parseJSON(args);
-	for (var i in parsedList) {
-	    var item = parsedList[i];
-	    var v = item[0];
-	    var nodes = item[1];
-	    usingNodes[v] = nodes;
-	    // alert(v + ' -> ' + nodes.length + ' nodes');
-	}
-    } else if (cmd == "trace") {
-	writeToLog('<span style="color: blue;">Trace</span>');
-	console.log('parsing args');
-	console.log(args);
-	parsedTrace = jQuery.parseJSON(args);
-	console.log(parsedTrace);
-	showElement('#ops', true);
-	processTrace(parsedTrace);
-    } else if (cmd == "end") {
-	writeToLog('<span style="color: blue;">End</span>');
-	showElement('#player', true);
-	var status = stringBefore(args, ' ');
-	var rest = stringAfter(args, ' ');
-	$('#executionInfo').text('Execution ' + args + '. ' + $('#ops div').length + ' operations');
-	if (status == "failed") {
-	    $('#executionInfo').addClass('executionFailed');
-	}
-	makeCurrentOp(0);
-	// showEdgeTraverseInfo();
-	// for (var k = 0 ; k <= trackCounter; k++) {
-	//     highlightTrackEnterOperations(k);
-	// }
-	$('.var').click(function() {
-	    showVarPopupMenuDialog($(this).text());
-	});
-	addNodeButtonHandlers();
-	$('#tabs').tabs('refresh');
-    } else {
-	writeToLog('<span style="color: brown;">Not a command</span>');
+    function handleCmd(expected, key) {
+	if (cmd == expected) {
+	    writeToLog('<span style="color: blue;">' + expected + '</span>');
+            instansResults[key] = args;
+	    return true;
+	} else return false;
     }
+    handleCmd("dot-result", 'dotResultGraph')
+	|| handleCmd("var-mappings", 'varMappings')
+	|| handleCmd("defining-nodes", 'definingNodes')
+	|| handleCmd("using-nodes", 'usingNodes')
+	|| handleCmd("trace", 'trace')
+	|| handleCmd("end", 'end') && handleInstansResults()
+	|| writeToLog('<span style="color: brown;">Not a command</span>');
 }
 
 function processTrace(trace) {
@@ -288,13 +287,6 @@ function processTrace(trace) {
     	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
     	    makeCurrentOp(i);
     	});
-	// var state = item["state"];
-	// if (state) {
-	//     var node = parms[0]['value'];
-	//     var type = parms[0]['type'];
-	//     processState(node, type, state);
-	//     $('#traceOp' + i).data('state', state);
-	// }
     }
     $('div[class="trace"] span[class="var"]').each(function() {
 	var from = $(this).text();
