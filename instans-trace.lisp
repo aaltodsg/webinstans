@@ -113,29 +113,31 @@
 	(t "unknown")))
 
 (defun sparql-value-to-json (x &key (nil-as-false-p t))
-  (let* ((tp nil) (r
+  (let* ((tp nil) (tokenp nil) (r
   (let ((type (sparql-value-type-as-json-string x :nil-as-false-p nil-as-false-p)))
     (cond
-	  ((eq type "token")
+	  ((equal type "token")
+	   (setf tokenp t)
 	   (token-to-json x))
-	  ((eq type "list")
+	  ((equal type "list")
 	   (list-to-json x))
-	  ((eq type "pair")
+	  ((equal type "pair")
 	   (list-to-json (list (car x) (cdr x))))
 	  (t
 	   (let ((value (cond ((instans::nodep x) (format nil "\"~A\"" (node-json-name x)))
 			      ((instans::sparql-var-p x) (format nil "\"~A\"" (sparql-var-json-name x)))
+			      ((instans::rdf-blank-node-p x) (format nil "\"~A\"" (instans::uniquely-named-object-name x)))
 			      ((instans::rdf-iri-p x) (format nil "\"~A\"" (instans::sparql-value-to-string x)))
 			      ((instans::existence-start-node-token-state-p x) (format nil "{\"counter\": ~D, \"isActive\": ~S}"
 										       (instans::existence-start-node-token-state-counter x)
 										       (if (instans::existence-start-node-token-state-active-p x) "true" "false")))
-			      ((eq type "keyword")
+			      ((equal type "keyword")
 			       (instans::sparql-value-to-string (string-downcase (string x))))
 			      (t (instans::sparql-value-to-string x)))))
 	     (setf tp type)
 	     (json-typed-value type value))))))
 	)
-    (logmsg "~%sparql-value-to-json ~S (type ~S) -> ~S" x tp r)
+    (logmsg "~%sparql-value-to-json ~S (type ~S), tokenp = ~S -> ~S" x tp tokenp r)
     r))
 
 (defun sparql-var-json-name (x)

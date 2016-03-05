@@ -158,8 +158,11 @@ function escapeHtml(str) {
 
 
 function handleInstansResults() {
+    console.log('set graph');
     $('#graph').html(instansResults.dotResultGraph);
     showElement('#graph', true);
+    console.log('parse var mappings');
+    console.log(instansResults.varMappings);
     var varMappings = jQuery.parseJSON(instansResults.varMappings);
     for (var i in varMappings) {
 	var mapping = varMappings[i];
@@ -182,6 +185,7 @@ function handleInstansResults() {
     }
     showElement('#varNumericToSymbolicMapping', true);
     // showElement('#varInfo', true);
+    console.log('parse defining nodes');
     var dn = jQuery.parseJSON(instansResults.definingNodes);
     for (var i in dn) {
 	var item = dn[i];
@@ -190,6 +194,7 @@ function handleInstansResults() {
 	definingNodes[v] = nodes;
 	// alert(v + ' -> ' + nodes.length + ' nodes');
     }
+    console.log('parse using nodes');
     var un = jQuery.parseJSON(instansResults.usingNodes);
     for (var i in un) {
 	var item = un[i];
@@ -198,13 +203,14 @@ function handleInstansResults() {
 	usingNodes[v] = nodes;
 	// alert(v + ' -> ' + nodes.length + ' nodes');
     }
-    // console.log('parsing args');
-    // console.log(instansResults.trace);
+    console.log('parsing trace');
+    console.log(instansResults.trace);
     parsedTrace = jQuery.parseJSON(instansResults.trace);
     console.log(parsedTrace);
     showElement('#ops', true);
     processTrace(parsedTrace);
     showElement('#player', true);
+    console.log('parsing end');
     var status = stringBefore(instansResults.end, ' ');
     var rest = stringAfter(instansResults.end, ' ');
     $('#executionInfo').text('Execution ' + instansResults.end + '. ' + $('#ops div').length + ' operations');
