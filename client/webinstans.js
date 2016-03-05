@@ -185,15 +185,6 @@ function onMessage(evt)
         // writeToLog('<span style="color: blue;">GRAPH: </span>');
         // document.body.innerHTML += Viz(graph);
 	$('#graph').html(graph);
-        // document.body.innerHTML += graph;
-	//         graph.innerHTML = Viz(graph);
-	var height = $('#graph').height();
-	var width = $('#graph').width();
-	var margin = 2;
-	$('#graph').height(height+2*margin);
-	$('#graph').width(width+2*margin);
-        $('#graph' ).scrollTop( 0 );
-        $('#graph' ).scrollLeft( 0 );
 	showElement('#graph', true);
     } else if (cmd == "var-mappings") {
 	writeToLog('<span style="color: blue;">Var-mappings</span>');
@@ -239,37 +230,6 @@ function onMessage(evt)
 	    usingNodes[v] = nodes;
 	    // alert(v + ' -> ' + nodes.length + ' nodes');
 	}
-    // } else if (cmd == "enter" || cmd == "exit") {
-    // 	$('#ops').css("visibility", "visible");
-    // 	$('#ops').css("display", "block");
-    // 	var c = $('#ops div').length;
-    // 	var indent = null;
-    // 	if (cmd == "enter") {
-    // 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
-    // 	    if (traceLevel == 0) {
-    // 		trackCounter = trackCounter + 1;
-    // 		trackEnterOps.push([]);
-    // 		console.log('>>>Increment trackCounter to ' + trackCounter + ' at operation ' + c);
-    // 		console.log('>>>trackEnterOps[' + trackCounter + ']' + trackEnterOps[trackCounter]);
-    // 	    }
-    // 	    traceLevel = traceLevel + 1;
-    // 	    trackEnterOps[trackCounter].push(c);
-    // 	} else {
-    // 	    traceLevel = traceLevel - 1;
-    // 	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
-    // 	}
-    // 	opTrackMapping.push(trackCounter);
-    // 	var operation = stringBefore(args, ' ');
-    // 	var params = stringAfter(args, ' ');
-    // 	var jsonParams = jQuery.parseJSON(params);
-    // 	var content = callToHTML(cmd, operation, jsonParams);
-    // 	$('#ops').append('<div id="traceOp' + c + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
-    // 	    // alert('calling makeCurrentOp('+ $('#ops').length + ')');
-    // 	    makeCurrentOp(c);
-    // 	});
-    // 	if (cmd == "enter") {
-    // 	    addEdgeTraverseInfo(operation, jsonParams, c);
-    // 	}
     } else if (cmd == "trace") {
 	writeToLog('<span style="color: blue;">Trace</span>');
 	console.log('parsing args');
