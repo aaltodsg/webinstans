@@ -360,29 +360,10 @@ function findNodeTraceItem(nodeName, startingFrom, forward) {
     return null;
 }
 
-function processState(node, type, state) {
-    // console.log('Node ' + node);
-    // console.log(state);
-    if (state['token-store']) {
-	updateTokenStoreState(node, type, state['token-store']);
-    }
-}
-
-function updateTokenStoreState(node, type, newState) {
-    if (newState['type'] == 'boolean' && newState['value'] == false) {
-	newState = {'type': 'token', 'value': []};
-    }
-    var prevStates = tokenStores[node];
-    if (!prevStates) {
-	tokenStores[node] = [ newState ];
-    } else {
-	console.log('Token store state changed in ' + node + ' from');
-	console.log(prevStates[prevStates.length - 1]);
-	console.log('to');
-	console.log(newState);
-	prevStates.push(newState);
-    }
-}
+// function processState(node, type, state) {
+//     // console.log('Node ' + node);
+//     // console.log(state);
+// }
 
 function showVarPopupMenuDialog(v) {
     // $('#varPopupMenuDialog').dialog( "option", "title", 'Operations on var ' + v);
@@ -576,53 +557,69 @@ function makeCurrentOp(n) {
 	if (newState) {
 	    // createStoreDialog(node);
 	    var prevTraceItem = findNodeTraceItem(node, n, false);
-	    var prevState = (prevTraceItem ? prevTraceItem['state'] : null);
-	    console.log('State of node "%s" changed from "%s" to "%s"', node, prevState, newState);
-	    var diffs = stateDiff(node, prevState, newState);
-	    if (diffs != null) {
-		console.log('Old tokens removed: ');
-		var oldTokens = diffs[0];
-		for (i in oldTokens) {
-		    console.log('  %o', tokenAsCompactString(oldTokens[i]));
-		}
-		console.log('New tokens added: ');
-		var newTokens = diffs[1];
-		for (i in newTokens) {
-		    console.log('  %o', tokenAsCompactString(newTokens[i]));
-		}
-	    }
-	    nodeState[node] = newState;
+	    var prevState = (prevTraceItem ? prevTraceItem['state'] : {});
+	    processStateChange(node, prevState, newState);
 	}
     }
-    console.log('node "%s", elem.class = "%s"', node, elem.attr('class'));
+    // console.log('node "%s", elem.class = "%s"', node, elem.attr('class'));
 }
-
-
-
-// function fixToken(x) {
-//     if (x['type'] == 'boolean' && x['value'] == false) {
-// 	x['type'] = 'token';
-// 	x['value'] = [];
-//     }
-//     return x;
-// }
 
 function filterChecksums(values) {
     return values.filter(x => x['type'] != 'checksum');
 }
 
-function tokenAsString(token) {
-    function convertValues(v) {
-	if (v instanceof Array) {
-	    return v.map(x => convertValues(x)).join();
-	} else if (v instanceof Object) {
-	    return '{' + Object.keys(v).map(k => k + ': ' + convertValues(v[k])).join(separator=", ") + '}';
-	} else {
-	    return v;
-	}
-	    
+function processStateChange(node, prevState, newState) {
+    console.log('State of node "%s" changed from "%s" to "%s"', node, prevState, newState);
+    if (newState['token-store']) {
+	updateTokenStoreState(node, prevState['token-store'] || [], newState['token-store'] || []);
+    } else {
+    	if (state['alpha-index']) {
+    	    updateIndexState(node, 'alpha', prevState['alpha-index'] || [], newState['alpha-index'] || []);
+    	}
     }
-    return token['type'] + '(' + convertValues(token['value']) + ')';
+    nodeState[node] = newState;
+}
+
+function updateTokenStoreState(node, prevTokens, newTokens) {
+    console.log('updateTokenStoreState prev = %o, new = %o', prevTokens, newTokens);
+    $('#'+node+' text:contains("tokens")').html(newTokens.length + ' tokens');
+    console.log('%o has %d tokens', node, newTokens.length);
+    var removedTokens = setDifference(prevTokens, newTokens);
+    for (i in removedTokens) {
+	console.log('removed %o', tokenAsCompactString(removedTokens[i]));
+    }
+    var addedTokens = setDifference(newTokens, prevTokens);
+    for (i in addedTokens) {
+	console.log('added %o', tokenAsCompactString(addedTokens[i]));
+    }
+    for (i in newTokens) {
+	console.log('current %o', tokenAsCompactString(newTokens[i]));
+    }
+}
+
+function updateIndexState(node, kind, prevKeyTokenPairs, newKeyTokenPairs) {
+    console.log('updateIndexState kind = %s prev = %o, new = %o', kind, prevKeyTokenPairs, newKeyTokenPairs);
+    if (kind == 'beta') {
+	$('#'+node+' text:contains("items"):first').html(newKeyTokenPairs.length + '');
+    console.log('%o has %d tokens', node, newKeyTokenPairs.length);
+    var removedKeyTokenPairs = setDifference(prevKeyTokenPairs, newKeyTokenPairs);
+    for (i in removedKeyTokenPairs) {
+	console.log('removed %o', tokenAsCompactString(removedKeyTokenPairs[i]));
+    }
+    var addedKeyTokenPairs = setDifference(newKeyTokenPairs, prevKeyTokenPairs);
+    for (i in addedKeyTokenPairs) {
+	console.log('added %o', tokenAsCompactString(addedKeyTokenPairs[i]));
+    }
+    for (i in newKeyTokenPairs) {
+	console.log('current %o', tokenAsCompactString(newKeyTokenPairs[i]));
+    }
+}
+
+function setDifference(s1, s2) {
+    console.log('setDifference(s1=%o, s2=%o)', s1, s2);
+    return s1.filter(function (element, index, array) {
+	return !s2.includes(element);
+    });
 }
 
 function tokenAsCompactString(token) {
@@ -641,34 +638,18 @@ function tokenAsCompactString(token) {
     return token['type'] + '(' + convertValues(token['value']) + ')';
 }
 
-function setDifference(s1, s2) {
-    console.log('setDifference(s1=%o, s2=%o)', s1, s2);
-    return s1.filter(function (element, index, array) {
-	return !s2.includes(element);
-    });
-}
-
-function stateDiff(node, prevState, newState) {
-    console.log('stateDiff');
-    console.log(prevState);
-    console.log(newState);
-    if (newState['token-store'] != undefined) {
-	var prevTokens = null;
-	if (prevState == null) {
-	    prevTokens = [];
+function tokenAsString(token) {
+    function convertValues(v) {
+	if (v instanceof Array) {
+	    return v.map(x => convertValues(x)).join();
+	} else if (v instanceof Object) {
+	    return '{' + Object.keys(v).map(k => k + ': ' + convertValues(v[k])).join(separator=", ") + '}';
 	} else {
-	    prevTokens = prevState['token-store'];
+	    return v;
 	}
-	var newTokens = newState['token-store'];
-	$('#'+node+' text:contains("tokens")').html(newTokens.length + ' tokens');
-	console.log('%o has %d tokens', node, newTokens.length);
-	for (i in newTokens) {
-	    console.log('  token %o', tokenAsCompactString(newTokens[i]));
-	}
-	return [ setDifference(prevTokens, newTokens), setDifference(newTokens, prevTokens) ];
-    } else {
-	return null;
+	    
     }
+    return token['type'] + '(' + convertValues(token['value']) + ')';
 }
 
 function onError(evt)

@@ -134,3 +134,11 @@
 
 (defmethod instans::token-store-clear :around ((node instans::token-store))
   (trace-wrap-call (list :token-store-clear node) :state-form (instans-trace-node-state node)))
+
+(defmethod instans::index-put-token :around ((this instans::token-index) key token)
+  (let ((node (instans::token-index-node this)))
+    (trace-wrap-call (list :index-put-token node key token) :state-form (instans-trace-node-state node))))
+
+(defmethod instans::index-remove-token :around ((this instans::token-index) key token)
+  (let ((node (instans::token-index-node this)))
+    (trace-wrap-call (list :index-remove-token node key token) :state-form (instans-trace-node-state node))))
