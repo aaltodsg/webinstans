@@ -140,5 +140,13 @@
     (trace-wrap-call (list :index-put-token node key token) :state-form (instans-trace-node-state node))))
 
 (defmethod instans::index-remove-token :around ((this instans::token-index) key token)
-  (let ((node (instans::token-index-node this)))
+  (let ((node (instans::token-map-owner this)))
     (trace-wrap-call (list :index-remove-token node key token) :state-form (instans-trace-node-state node))))
+
+(defmethod instans::token-map-put :around ((this instans::token-map) token value)
+  (let ((node (instans::token-map-owner this)))
+    (trace-wrap-call (list :token-map-put node token value) :state-form (instans-trace-node-state node))))
+
+(defmethod instans::token-map-remove :around ((this instans::token-map) token)
+  (let ((node (instans::token-map-owner this)))
+    (trace-wrap-call (list :token-map-remove node token :state-form (instans-trace-node-state node)))))

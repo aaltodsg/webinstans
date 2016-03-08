@@ -543,7 +543,9 @@ function makeCurrentOp(n) {
     if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
 	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token" ||
 	operation == "token-store-put" || operation == "token-store-put-if-missing" || 
-	operation == "token-store-remove" || operation == "token-store-remove-if-exists" || operation == "token-store-clear") {
+	operation == "token-store-remove" || operation == "token-store-remove-if-exists" || operation == "token-store-clear" ||
+        operation == "index-put-token" || operation == "index-remove-token" ||
+        operation == "token-map-put" || operation == "token-map-remove") {
 	var node = $('#traceOp' + n + ' span[class="node"]').text().trim();
 	console.log('operation "%s" in node "%s"', operation, node);
 	if (currentNode && savedCss[currentNode]) {
@@ -570,14 +572,36 @@ function filterChecksums(values) {
 
 function processStateChange(node, prevState, newState) {
     console.log('State of node "%s" changed from "%s" to "%s"', node, prevState, newState);
-    if (newState['token-store']) {
+    if (newState['map']) {
+	updateTokenMapState(node, prevState['map'] || [], newState['map'] || []);
+    } else if (newState['token-store']) {
 	updateTokenStoreState(node, prevState['token-store'] || [], newState['token-store'] || []);
     } else {
-    	if (state['alpha-index']) {
+    	if (newState['alpha-index']) {
     	    updateIndexState(node, 'alpha', prevState['alpha-index'] || [], newState['alpha-index'] || []);
+    	}
+    	if (newState['beta-index']) {
+    	    updateIndexState(node, 'beta', prevState['beta-index'] || [], newState['beta-index'] || []);
     	}
     }
     nodeState[node] = newState;
+}
+
+function updateTokenMapState(node, prevItems, newItems) {
+    console.log('updateTokenMapState prev = %o, new = %o', prevItems, newItems);
+    $('#'+node+' text:contains("tokens")').html(newItems.length + ' tokens');
+    console.log('%o has %d tokens', node, newItems.length);
+    var removedItems = setDifference(prevItems, newItems);
+    for (i in removedItems) {
+	console.log('removed %o', itemAsCompactString(removedItems[i]));
+    }
+    var addedItems = setDifference(newItems, prevItems);
+    for (i in addedItems) {
+	console.log('added %o', itemAsCompactString(addedItems[i]));
+    }
+    for (i in newItems) {
+	console.log('current %o', itemAsCompactString(newItems[i]));
+    }
 }
 
 function updateTokenStoreState(node, prevTokens, newTokens) {
@@ -599,20 +623,24 @@ function updateTokenStoreState(node, prevTokens, newTokens) {
 
 function updateIndexState(node, kind, prevKeyTokenPairs, newKeyTokenPairs) {
     console.log('updateIndexState kind = %s prev = %o, new = %o', kind, prevKeyTokenPairs, newKeyTokenPairs);
-    if (kind == 'beta') {
-	$('#'+node+' text:contains("items"):first').html(newKeyTokenPairs.length + '');
-    console.log('%o has %d tokens', node, newKeyTokenPairs.length);
-    var removedKeyTokenPairs = setDifference(prevKeyTokenPairs, newKeyTokenPairs);
-    for (i in removedKeyTokenPairs) {
-	console.log('removed %o', tokenAsCompactString(removedKeyTokenPairs[i]));
-    }
-    var addedKeyTokenPairs = setDifference(newKeyTokenPairs, prevKeyTokenPairs);
-    for (i in addedKeyTokenPairs) {
-	console.log('added %o', tokenAsCompactString(addedKeyTokenPairs[i]));
-    }
-    for (i in newKeyTokenPairs) {
-	console.log('current %o', tokenAsCompactString(newKeyTokenPairs[i]));
-    }
+    var access = (kind == 'alpha' ? 'last' : 'first')
+    var elems = $('#'+node+' text:contains("items"):'+access);
+    var oldText = $(elems).text();
+    var newText = oldText.replace(/no|\d+/, '' + newKeyTokenPairs.length);
+    console.log('oldText = %o, newText = %o', oldText, newText);
+    $(elems).text(newText);
+    // console.log('%o has %d tokens', node, newKeyTokenPairs.length);
+    // var removedKeyTokenPairs = setDifference(prevKeyTokenPairs, newKeyTokenPairs);
+    // for (i in removedKeyTokenPairs) {
+    // 	console.log('removed %o', tokenAsCompactString(removedKeyTokenPairs[i]));
+    // }
+    // var addedKeyTokenPairs = setDifference(newKeyTokenPairs, prevKeyTokenPairs);
+    // for (i in addedKeyTokenPairs) {
+    // 	console.log('added %o', tokenAsCompactString(addedKeyTokenPairs[i]));
+    // }
+    // for (i in newKeyTokenPairs) {
+    // 	console.log('current %o', tokenAsCompactString(newKeyTokenPairs[i]));
+    // }
 }
 
 function setDifference(s1, s2) {
