@@ -131,6 +131,7 @@
       (let ((json-trace (with-output-to-string (ostream) (instans-trace-print *instans-trace* ostream :json))))
 	;; (logmsg "get-trace: ~A" (message-sample json-trace))
 	(logmsg "get-trace: ~A" json-trace)
+	(logmsg "trace = ~A" (instans-trace-operations *instans-trace*))
 	(broadcast server "trace ~A" json-trace)))))
 
 (defmethod hunchensocket:text-message-received ((server webinstans-server) user message)
@@ -163,7 +164,10 @@
 			   (get-defining-nodes server)
 			   (get-using-nodes server)
 			   (get-matching-nodes server)
-			   (get-trace server)
+			   (handler-case
+			       (get-trace server)
+			       (condition (e)
+				 (logmsg "webinstans::get-trace error ~S" e)))
 			   (logmsg "Execution succeeded")
 			   (broadcast server "end ~:[failed~;succeeded~]" succeededp)))
 		     (condition (e)

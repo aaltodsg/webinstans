@@ -3,10 +3,10 @@
 (in-package :webinstans)
 
 (defmethod instans::rete-add :around ((this instans::instans) subj pred obj graph)
-  (trace-wrap-call (cons :rete-add (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj (if graph graph :default)))))
+  (trace-wrap-call :function :rete-add :parameters (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj (if graph graph :default))))
 
 (defmethod instans::rete-remove :around ((this instans::instans) subj pred obj graph)
-  (trace-wrap-call (cons :rete-remove (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj (if graph graph :default)))))
+  (trace-wrap-call :function :rete-remove :parameters (list (instans::instans-input-processor-name instans::*current-input-processor*) subj pred obj (if graph graph :default))))
 
 ;; (defgeneric rete-add-rule-instance (instans node token))
 
@@ -64,27 +64,27 @@
 
 (defmethod instans::add-token :around ((node instans::node) token &optional stack)
   (declare (ignorable stack))
-  (trace-wrap-call (list :add-token node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :add-token :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::add-alpha-token :around ((node instans::join-node) token &optional stack)
   (declare (ignorable stack))
-  (trace-wrap-call (list :add-alpha-token node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :add-alpha-token :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::add-beta-token :around ((node instans::join-node) token &optional stack)
   (declare (ignorable stack))
-  (trace-wrap-call (list :add-beta-token node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :add-beta-token :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::remove-token :around ((node instans::node) token &optional stack)
   (declare (ignorable stack))
-  (trace-wrap-call (list :remove-token node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :remove-token :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::remove-alpha-token :around ((node instans::join-node) token &optional stack)
   (declare (ignorable stack))
-  (trace-wrap-call (list :remove-alpha-token node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :remove-alpha-token :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::remove-beta-token :around ((node instans::join-node) token &optional stack)
   (declare (ignorable stack))
-  (trace-wrap-call (list :remove-beta-token node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :remove-beta-token :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 ;; (defun rule-instance-queue-empty-p (queue))
 
@@ -121,32 +121,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmethod instans::token-store-put :around ((node instans::token-store) token)
-  (trace-wrap-call (list :token-store-put node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :token-store-put :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::token-store-put-if-missing :around ((node instans::token-store) token)
-  (trace-wrap-call (list :token-store-put-if-missing node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :token-store-put-if-missing :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::token-store-remove :around ((node instans::token-store) token)
-  (trace-wrap-call (list :token-store-remove node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :token-store-remove :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::token-store-remove-if-exists :around ((node instans::token-store) token)
-  (trace-wrap-call (list :token-store-remove-if-exists node token) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :token-store-remove-if-exists :parameters (list node token) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::token-store-clear :around ((node instans::token-store))
-  (trace-wrap-call (list :token-store-clear node) :state-form (instans-trace-node-state node)))
+  (trace-wrap-call :node node :function :token-store-clear :parameters (list node) :state-form (instans-trace-node-state node)))
 
 (defmethod instans::index-put-token :around ((this instans::token-index) key token)
   (let ((node (instans::token-index-node this)))
-    (trace-wrap-call (list :index-put-token node key token) :state-form (instans-trace-node-state node))))
+    (trace-wrap-call :node node :function :index-put-token :parameters (list node key token) :state-form (instans-trace-node-state node))))
 
 (defmethod instans::index-remove-token :around ((this instans::token-index) key token)
   (let ((node (instans::token-map-owner this)))
-    (trace-wrap-call (list :index-remove-token node key token) :state-form (instans-trace-node-state node))))
+    (trace-wrap-call :node node :function :index-remove-token :parameters (list node key token) :state-form (instans-trace-node-state node))))
 
 (defmethod instans::token-map-put :around ((this instans::token-map) token value)
   (let ((node (instans::token-map-owner this)))
-    (trace-wrap-call (list :token-map-put node token value) :state-form (instans-trace-node-state node))))
+    (trace-wrap-call :node node :function :token-map-put :parameters (list node token value) :state-form (instans-trace-node-state node))))
 
 (defmethod instans::token-map-remove :around ((this instans::token-map) token)
   (let ((node (instans::token-map-owner this)))
-    (trace-wrap-call (list :token-map-remove node token :state-form (instans-trace-node-state node)))))
+    (trace-wrap-call :node node :function :token-map-remove :parameters (list node token) :state-form (instans-trace-node-state node))))

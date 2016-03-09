@@ -5,39 +5,89 @@
 (defclass instans-trace ()
   ((operations :accessor instans-trace-operations :initform nil)
    (tail :accessor instans-trace-tail :initform nil)
-   (node-states :accessor instans-trace-node-states :initform nil)))
+   (node-states :accessor instans-trace-node-states :initform (make-hash-table))))
   
 (defclass instans-trace-entry ()
-  ((call :accessor instans-trace-entry-call :initarg :call :initform nil)
-   (node :accessor instans-trace-entry-node :initarg :node :initform nil)
+  ((node :accessor instans-trace-entry-node :initarg :node :initform nil)
+   (direction :accessor instans-trace-entry-direction :initarg :direction :initform nil)
+   (function :accessor instans-trace-entry-function :initarg :function :initform nil)
+   (parameters :accessor instans-trace-entry-parameters :initarg :parameters :initform nil)
    (state :accessor instans-trace-entry-state :initarg :state :initform nil)
    (delta :accessor instans-trace-entry-delta :initarg :delta :initform nil)))
 
 (defclass instans-trace-state () ())
 
-(defclass instans-trace-token-store-state ()
+(defclass instans-trace-token-store-state (instans-trace-state)
   ((tokens :accessor instans-trace-token-store-state-tokens :initarg :tokens :initform nil)))
 
-(defclass instans-trace-join-state ()
-  ((alpha-tokens :accessor instans-trace-join-state-alpha-tokens :initarg :alpha-tokens :initform nil)
-   (beta-tokens :accessor instans-trace-join-state-beta-tokens :initarg :beta-tokens :initform nil)))
+(defclass instans-trace-join-node-state (instans-trace-state)
+  ((alpha-items :accessor instans-trace-join-node-state-alpha-items :initarg :alpha-items :initform nil)
+   (beta-items :accessor instans-trace-join-node-state-beta-items :initarg :beta-items :initform nil)))
 
-(defclass instans-trace-join-node-state ()
-  ((alpha-tokens :accessor instans-trace-join-node-state-alpha-tokens :initarg :alpha-tokens :initform nil)
-   (beta-tokens :accessor instans-trace-join-node-state-beta-tokens :initarg :beta-tokens :initform nil)))
-
-(defclass instans-trace-existence-start-node-state ()
+(defclass instans-trace-existence-start-node-state (instans-trace-state)
   ((tokens :accessor instans-trace-existence-start-node-state-tokens :initarg :tokens :initform nil)
-   (map :accessor instans-trace-existence-start-node-state-map :initarg :map :initform nil)))
+   (map-items :accessor instans-trace-existence-start-node-state-map-items :initarg :map-items :initform nil)))
 
-(defgeneric instans-trace-add-call (instans-trace &key call node state)
-  (:method ((this instans-trace) &key call state)
-    (let* ((delta (and node (progn1
-			     (let ((prev-state (assoc node (instans-trace-node-state node))))
-			       (and prev-state (state-delta prev-state state)))
-			     (setf (assoc node (instans-trace-node-state node)) state))))
-	   (entry (make-instance 'instans-trace-entry :call call :node node :state state :delta delta))
+(defclass instans-trace-query-node-state (instans-trace-state)
+  ((items :accessor instans-trace-query-node-state-items :initarg :items :initform nil)))
+
+;; instans-trace-token-store-state
+
+;; instans-trace-join-node-state
+
+;; instans-trace-existence-start-node-state
+
+;; instans-trace-query-node-state
+
+(defclass instans-trace-delta () ())
+
+(defclass instans-trace-token-store-delta (instans-trace-delta)
+  ((added-tokens :accessor instans-trace-token-store-delta-added-tokens :initarg :added-tokens)
+   (removed-tokens :accessor instans-trace-token-store-delta-removed-tokens :initarg :removed-tokens)))
+
+(defclass instans-trace-join-node-delta (instans-trace-delta)
+  ((alpha-added-items :accessor instans-trace-join-node-delta-alpha-added-items :initarg :alpha-added-items)
+   (alpha-removed-items :accessor instans-trace-join-node-delta-alpha-removed-items :initarg :alpha-removed-items)
+   (beta-added-items :accessor instans-trace-join-node-delta-beta-added-items :initarg :beta-added-items)
+   (beta-removed-items :accessor instans-trace-join-node-delta-beta-removed-items :initarg :beta-removed-items)))
+
+(defclass instans-trace-existence-start-node-delta (instans-trace-delta)
+  ((added-tokens :accessor instans-trace-existence-start-node-delta-added-tokens :initarg :added-tokens)
+   (removed-tokens :accessor instans-trace-existence-start-node-delta-removed-tokens :initarg :removed-tokens)
+   (map-added-items :accessor instans-trace-existence-start-node-delta-map-added-items :initarg :map-added-items)
+   (map-removed-items :accessor instans-trace-existence-start-node-delta-map-removed-items :initarg :map-removed-items)))
+
+(defclass instans-trace-query-node-delta (instans-trace-delta)
+  ((added-items :accessor instans-trace-query-node-delta-added-items :initarg :added-items)
+   (removed-items :accessor instans-trace-query-node-delta-removed-items :initarg :removed-items)))
+
+;; instans-trace-token-store-delta
+
+;; instans-trace-join-node-delta
+
+;; instans-trace-existence-start-node-delta
+
+;; instans-trace-query-node-delta
+
+(defgeneric instans-trace-state-delta (prev-state new-state)
+  (:method ((this instans-trace-token-store-state) (other instans-trace-token-store-state))
+    (list this other))
+  (:method ((this instans-trace-join-node-state) (other instans-trace-join-node-state))
+    (list this other))
+  (:method ((this instans-trace-existence-start-node-state) (other instans-trace-existence-start-node-state))
+    (list this other))
+  (:method ((this instans-trace-query-node-state) (other instans-trace-query-node-state))
+    (list this other)))
+
+(defgeneric instans-trace-add-call (instans-trace &key node direction function parameters state)
+  (:method ((this instans-trace) &key node direction function parameters state)
+    (let* ((delta (and node (prog1
+			     (let ((prev-state (gethash node (instans-trace-node-state node))))
+			       (and prev-state (instans-trace-state-delta prev-state state)))
+			     (setf (gethash node (instans-trace-node-states this)) state))))
+	   (entry (make-instance 'instans-trace-entry :node node :direction direction :function function :parameters parameters :state state :delta delta))
 	   (new (list entry)))
+      (logmsg "add-call ~A" entry)
       (cond ((null (instans-trace-operations this))
 	     (setf (instans-trace-operations this) new)
 	     (setf (instans-trace-tail this) new))
@@ -46,28 +96,32 @@
 	     (setf (instans-trace-tail this) (cdr (instans-trace-tail this)))))
       (first new))))
 
-(defgeneric instans-trace-add-enter (instans-trace &key call state)
-  (:method ((this instans-trace) &key call state)
-    (instans-trace-add-call this :call (cons :enter call) :state state)))
+(defgeneric instans-trace-add-enter (instans-trace &key node function parameters state)
+  (:method ((this instans-trace) &key node function parameters state)
+    (instans-trace-add-call this :node node :direction :enter :function function :parameters parameters :state state)))
 
-(defgeneric instans-trace-add-exit (instans-trace &key call state)
-  (:method ((this instans-trace) &key call state)
-    (instans-trace-add-call this :call (cons :exit call) :state state)))
+(defgeneric instans-trace-add-exit (instans-trace &key node function parameters state)
+  (:method ((this instans-trace) &key node function parameters state)
+    (instans-trace-add-call this :node node :direction :exit :function function :parameters parameters :state state)))
 
 (defgeneric instans-trace-node-state (node)
   (:method ((this instans::token-store))
-    (list :token-store (instans::token-store-tokens this)))
+    (make-instance 'instans-trace-token-store-state :tokens (instans::token-store-tokens this)))
   (:method ((this instans::join-node))
-    (list :alpha-index (and (instans::join-alpha-index this) (instans::index-tokens (instans::join-alpha-index this)))
-	  :beta-index (and (instans::join-beta-index this) (instans::index-tokens (instans::join-beta-index this)))))
+    (make-instance 'instans-trace-join-node-state
+		   :alpha-items (and (instans::join-alpha-index this) (instans::index-tokens (instans::join-alpha-index this)))
+		   :beta-items (and (instans::join-beta-index this) (instans::index-tokens (instans::join-beta-index this)))))
   (:method ((this instans::existence-start-node))
-    (list :map (instans::token-map-map (instans::existence-start-node-token-map this))))
-  (:method ((this instans::filter-with-previous-value))
-    (list :map (instans::filter-with-previous-value-token-map this)))
-  (:method ((this instans::aggregate-join-node))
-    (list :map (instans::aggregate-join-token-group-map this)))
+    (make-instance 'instans-trace-existence-start-node-state
+		   :tokens (instans::token-store-tokens this)
+		   :map-items (instans::token-map-map (instans::existence-start-node-token-map this))))
+  ;; (:method ((this instans::filter-with-previous-value))
+  ;;   (list :map (instans::filter-with-previous-value-token-map this)))
+  ;; (:method ((this instans::aggregate-join-node))
+  ;;   (list :map (instans::aggregate-join-token-group-map this)))
   (:method ((this instans::query-node))
-    (and (slot-boundp this 'instans::project-index) (list :project-index (instans::solution-modifiers-project-index this))))
+    (make-instance 'instans-trace-query-node-state
+		   :items (and (slot-boundp this 'instans::project-index) (instans::solution-modifiers-project-index this))))
   (:method ((this instans::node))
     nil))
 
@@ -90,30 +144,80 @@
 	     (output output-stream))))))
 
 (defun instans-trace-print-json-stream (trace stream)
-  (labels ((print-trace-item (item)
-	     (format stream "~&{")
-	     (let* ((call (getf item :call))
-		    (state (getf item :state)))
-	       (destructuring-bind (direction op . args) call
-		 (format stream "~(\"direction\": ~S~), " (string direction))
-		 (format stream "~(\"operation\": ~S~), " (string op))
-		 (format stream "~(\"parameters\": ~A~)" (list-to-json args)))
-	       (when state
-		 (format *error-output* "~%state = ~S" state)
-		 (format stream ", \"state\": {")
-		 (loop for comma = "" then ", "
-		       for rest on state by #'cddr
-		       for key = (first rest)
-		       for value = (second rest)
-		       do (format stream "~A~(~S: ~A~)" comma (string key) (sparql-value-to-json value :nil-as-false-p nil)))
-		 (format stream "}")))
-	     (format stream "~%}")))
+  ;; (labels ((print-trace-item (item)
+  ;; 	     (format stream "~&{")
+  ;; 	     (let* ((call (getf item :call))
+  ;; 		    (state (getf item :state)))
+  ;; 	       (destructuring-bind (direction op . args) call
+  ;; 		 (format stream "~(\"direction\": ~S~), " (string direction))
+  ;; 		 (format stream "~(\"operation\": ~S~), " (string op))
+  ;; 		 (format stream "~(\"parameters\": ~A~)" (list-to-json args)))
+  ;; 	       (when state
+  ;; 		 (format *error-output* "~%state = ~S" state)
+  ;; 		 (format stream ", \"state\": {")
+  ;; 		 (loop for comma = "" then ", "
+  ;; 		       for rest on state by #'cddr
+  ;; 		       for key = (first rest)
+  ;; 		       for value = (second rest)
+  ;; 		       do (format stream "~A~(~S: ~A~)" comma (string key) (sparql-value-to-json value :nil-as-false-p nil)))
+  ;; 		 (format stream "}")))
+  ;; 	     (format stream "~%}")))
     (format stream "~&[")
     (loop for comma = "" then ", "
 	  for item in (instans-trace-operations trace)
 	  do (format stream comma)
-	  do (print-trace-item item))
-    (format stream "~&]")))
+	  do (instans-trace-entry-print-json item stream))
+    (format stream "~&]"))
+
+(defun instans-trace-type-to-json (x stream)
+  (format stream "\"type\": \"~(~A~)\"" (subseq (string (type-of x)) (length "instans-trace-"))))
+
+(defun instans-trace-slot-to-json (x slot stream)
+  (format stream "\"~(~A~)\": ~A" slot (sparql-value-to-json (slot-value x slot))))
+
+(defgeneric instans-trace-entry-print-json (entry &optional stream)
+  (:method ((this instans-trace-entry) &optional (stream *standard-output*))
+    (format stream "{ ~A" (instans-trace-type-to-json this stream))
+    (instans-trace-slot-to-json this 'node stream)
+    (format stream ", ")
+    (instans-trace-slot-to-json this 'direction stream)
+    (format stream ", ")
+    (instans-trace-slot-to-json this 'function stream)
+    (format stream ", ")
+    (instans-trace-node-state-print-json (instans-trace-entry-state this))
+    (format stream "}")))
+
+(defgeneric instans-trace-node-state-print-json (state &optional stream)
+  (:method ((this instans-trace-state) &optional (stream *standard-output*))
+    (format stream "{ ~A" (instans-trace-type-to-json this stream))
+    (loop for slot in (get-slots this)
+	  do (format stream ", ~A" (instans-trace-slot-to-json this slot stream)))
+    (format stream "}~%")))
+  ;; (:method ((this instans-trace-token-store-state) &optional (stream *standard-output*))
+  ;;   (format stream "{ \"type\": \"token-store-state\", \"tokens\": ~A}"
+  ;; 	    (sparql-value-to-json (instans-trace-token-store-state-tokens this))))
+  ;; (:method ((this instans-trace-join-node-state) &optional (stream *standard-output*))
+  ;;   (format stream "{ \"type\": \"join-node-state\", \"alpha-items\": ~A, \"beta-items\": ~A}"
+  ;; 	    (sparql-value-to-json (instans-trace-join-node-state-alpha-items this)))
+  ;; 	    (sparql-value-to-json (instans-trace-join-node-state-beta-items this)))
+  ;; (:method ((this instans-trace-existence-start-node-state) &optional (stream *standard-output*))
+  ;;   (format stream "{ \"type\": \"existence-start-node-state\", \"tokens\": ~A, \"map-items\": ~A}"
+  ;; 	    (sparql-value-to-json (instans-trace-existence-start-node-state-tokens this))
+  ;; 	    (sparql-value-to-json (instans-trace-existence-start-node-state-map-items this))))
+  ;; (:method ((this instans-trace-query-node-state) &optional (stream *standard-output*))
+  ;;   (format stream "{ \"type\": \"query-node-state\", \"\": ~A"
+  ;; 	    (sparql-value-to-json (instans-trace-query-node-state-items this)))))
+
+;; (defgeneric instans-trace-node-delta-print-json (delta &optional stream)
+;;   (:method ((this instans-trace-token-store-delta) &optional (stream *standard-output*))
+;;     )
+;;   (:method ((this instans-trace-join-node-delta) &optional (stream *standard-output*))
+;;     )
+;;   (:method ((this instans-trace-existence-start-node-delta) &optional (stream *standard-output*))
+;;     )
+;;   (:method ((this instans-trace-query-node-delta) &optional (stream *standard-output*))
+;;     )
+;; )
 
 (defun json-typed-value (type value)
   (format nil "{ \"type\": \"~A\", \"value\": ~A}" type value))

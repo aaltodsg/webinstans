@@ -2,19 +2,23 @@
 
 (in-package :webinstans)
 
-(defmacro trace-wrap-call (call &key state-form)
-  (let ((call-var (gensym "CALL"))
-	(state-var (gensym "STATE")))
-    `(let ((,call-var ,call)
+(defun trace-wrap-call (&key node function parameters state-form)
+  (let ((node-var (gensym "NODE"))
+	(function-var (gensym "FUNCTION"))
+	(parameters-var (gensym "PARAMETERS"))
+	(state-var (gensym "STATE-VAR")))
+    `(let ((,node-var ,node)
+	   (,function-var ,function)
+	   (,parameters-var ,parameters)
 	   ,@(if state-form `((,state-var ,state-form))))
        (when *instans-trace*
 	 ;; ,(if state-form `(logmsg "enter ~A, state ~A" ,call-var ,state-var) `(logmsg "enter ~A" ,call-var))
-	 (instans-trace-add-enter *instans-trace* :call ,call-var ,@(if state-form `(:state ,state-form))))
+	 (instans-trace-add-enter *instans-trace* :node ,node-var :function ,function-var :parameters ,parameters-var :state ,state-var))
        (multiple-value-prog1 (call-next-method)
 	 ,@(if state-form `((setf ,state-var ,state-form)))
 	 (when *instans-trace*
 	   ;; ,(if state-form `(logmsg "exit ~A, state ~A" ,call-var ,state-var) `(logmsg "exit ~A" ,call-var))
-	   (instans-trace-add-exit *instans-trace* :call ,call-var ,@(if state-form `(:state ,state-form))))))))
+	   (instans-trace-add-exit *instans-trace* :node ,node-var :function ,function-var :parameters ,parameters-var :state ,state-var))))))
 
 (defmacro loggingmsgs (&body body)
   `(with-open-file (str "log" :direction :output :if-exists :append :if-does-not-exist :create)
