@@ -126,9 +126,12 @@
   
 
 (defun get-trace (server)
+  ;; (logmsg "get-trace ~A" server)
   (let ((instans (webinstans-server-instans server)))
     (when instans
+      ;; (logmsg "get-trace, before instans-trace-print ~A" server)
       (let ((json-trace (with-output-to-string (ostream) (instans-trace-print *instans-trace* ostream :json))))
+	;; (logmsg "get-trace, after instans-trace-print ~A" server)
 	;; (logmsg "get-trace: ~A" (message-sample json-trace))
 	(logmsg "get-trace: ~A" json-trace)
 	(logmsg "trace = ~A" (instans-trace-operations *instans-trace*))
@@ -153,12 +156,22 @@
 			   (instans-trace-init)
 			   (let ((instans (instans::create-instans)))
 			     (setf (webinstans-server-instans server) instans)
-			     (handler-case
-				 (webinstans::main args :instans instans)
-			       (condition (e)
-				 (setf succeededp nil)
-				 (logmsg "webinstans::main error ~S" e)
-				 (broadcast server "error ~S" e))))
+			     (loggingmsgs
+			       (let ((*trace-output* *logstream*))
+				 (handler-case
+				   (progn
+				     ;; (handler-case
+				     ;; 	 (progn 
+				     ;; 	   (untrace)
+				     ;; 	   (instans::trace-rete)
+				     ;; 	   (trace instans-trace-add-call))
+				     ;; 	 (condition () nil))
+				       (webinstans::main args :instans instans))
+				   (condition (e)
+				     (setf succeededp nil)
+				     (logmsg "webinstans::main error ~S" e)
+				     (broadcast server "error ~S" e)
+				     )))))
 			   (get-dot server)
 			   (get-var-mappings server)
 			   (get-defining-nodes server)

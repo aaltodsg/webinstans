@@ -271,6 +271,7 @@ function processTrace(trace) {
     // $('#ops').append(parsedTrace);
     for (var i in trace) {
 	var item = trace[i];
+	console.log('process trace item %o', item);
 	var cmd = item["direction"];
 	var op = item["operation"];
 	var parms = item["parameters"];

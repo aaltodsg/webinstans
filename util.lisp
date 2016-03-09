@@ -8,9 +8,13 @@
   (if (probe-file *logfile*)
       (delete-file *logfile*)))
 
+(defvar *logstream* nil)
+
 (defun logmsg (msg &rest args)
-  (with-open-file (str *logfile* :direction :output :if-exists :append :if-does-not-exist :create)
-    (apply #'format str (format nil "~%~S~%" msg) args)))
+  (if *logstream*
+      (apply #'format *logstream* (format nil "~%~S~%" msg) args)
+      (with-open-file (str *logfile* :direction :output :if-exists :append :if-does-not-exist :create)
+	(apply #'format str (format nil "~%~S~%" msg) args))))
 
 (defun logdescribe (object)
   (with-open-file (str *logfile* :direction :output :if-exists :append :if-does-not-exist :create)
