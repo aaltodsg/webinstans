@@ -4,11 +4,40 @@
 
 (defclass instans-trace ()
   ((operations :accessor instans-trace-operations :initform nil)
-   (tail :accessor instans-trace-tail :initform nil)))
+   (tail :accessor instans-trace-tail :initform nil)
+   (node-states :accessor instans-trace-node-states :initform nil)))
   
-(defgeneric instans-trace-add-call (instans-trace &key call state)
+(defclass instans-trace-entry ()
+  ((call :accessor instans-trace-entry-call :initarg :call :initform nil)
+   (node :accessor instans-trace-entry-node :initarg :node :initform nil)
+   (state :accessor instans-trace-entry-state :initarg :state :initform nil)
+   (delta :accessor instans-trace-entry-delta :initarg :delta :initform nil)))
+
+(defclass instans-trace-state () ())
+
+(defclass instans-trace-token-store-state ()
+  ((tokens :accessor instans-trace-token-store-state-tokens :initarg :tokens :initform nil)))
+
+(defclass instans-trace-join-state ()
+  ((alpha-tokens :accessor instans-trace-join-state-alpha-tokens :initarg :alpha-tokens :initform nil)
+   (beta-tokens :accessor instans-trace-join-state-beta-tokens :initarg :beta-tokens :initform nil)))
+
+(defclass instans-trace-join-node-state ()
+  ((alpha-tokens :accessor instans-trace-join-node-state-alpha-tokens :initarg :alpha-tokens :initform nil)
+   (beta-tokens :accessor instans-trace-join-node-state-beta-tokens :initarg :beta-tokens :initform nil)))
+
+(defclass instans-trace-existence-start-node-state ()
+  ((tokens :accessor instans-trace-existence-start-node-state-tokens :initarg :tokens :initform nil)
+   (map :accessor instans-trace-existence-start-node-state-map :initarg :map :initform nil)))
+
+(defgeneric instans-trace-add-call (instans-trace &key call node state)
   (:method ((this instans-trace) &key call state)
-    (let ((new (list (if state (list :call call :state state) (list :call call)))))
+    (let* ((delta (and node (progn1
+			     (let ((prev-state (assoc node (instans-trace-node-state node))))
+			       (and prev-state (state-delta prev-state state)))
+			     (setf (assoc node (instans-trace-node-state node)) state))))
+	   (entry (make-instance 'instans-trace-entry :call call :node node :state state :delta delta))
+	   (new (list entry)))
       (cond ((null (instans-trace-operations this))
 	     (setf (instans-trace-operations this) new)
 	     (setf (instans-trace-tail this) new))
@@ -137,7 +166,7 @@
 	     (setf tp type)
 	     (json-typed-value type value))))))
 	)
-    (logmsg "~%sparql-value-to-json ~S (type ~S), tokenp = ~S -> ~S" x tp tokenp r)
+    ;; (logmsg "~%sparql-value-to-json ~S (type ~S), tokenp = ~S -> ~S" x tp tokenp r)
     r))
 
 (defun sparql-var-json-name (x)
@@ -174,5 +203,5 @@
 						      (t x)))
 					    token))))
 	)
-    (logmsg "~%token-to-json ~S -> ~S" token r)
+    ;; (logmsg "~%token-to-json ~S -> ~S" token r)
     r))

@@ -8,12 +8,12 @@
     `(let ((,call-var ,call)
 	   ,@(if state-form `((,state-var ,state-form))))
        (when *instans-trace*
-	 ,(if state-form `(logmsg "enter ~A, state ~A" ,call-var ,state-var) `(logmsg "enter ~A" ,call-var))
+	 ;; ,(if state-form `(logmsg "enter ~A, state ~A" ,call-var ,state-var) `(logmsg "enter ~A" ,call-var))
 	 (instans-trace-add-enter *instans-trace* :call ,call-var ,@(if state-form `(:state ,state-form))))
        (multiple-value-prog1 (call-next-method)
 	 ,@(if state-form `((setf ,state-var ,state-form)))
 	 (when *instans-trace*
-	   ,(if state-form `(logmsg "exit ~A, state ~A" ,call-var ,state-var) `(logmsg "exit ~A" ,call-var))
+	   ;; ,(if state-form `(logmsg "exit ~A, state ~A" ,call-var ,state-var) `(logmsg "exit ~A" ,call-var))
 	   (instans-trace-add-exit *instans-trace* :call ,call-var ,@(if state-form `(:state ,state-form))))))))
 
 (defmacro loggingmsgs (&body body)
