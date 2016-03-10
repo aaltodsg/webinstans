@@ -32,7 +32,7 @@
    (map-items :accessor instans-trace-existence-start-node-state-map-items :initarg :map-items :initform nil)))
 
 (defclass instans-trace-query-node-state (instans-trace-state)
-  ((items :accessor instans-trace-query-node-state-items :initarg :items :initform nil)))
+  ((solutions :accessor instans-trace-query-node-state-solutions :initarg :solutions :initform nil)))
 
 ;; instans-trace-token-store-state
 
@@ -61,8 +61,8 @@
    (map-removed-items :accessor instans-trace-existence-start-node-delta-map-removed-items :initarg :map-removed-items)))
 
 (defclass instans-trace-query-node-delta (instans-trace-delta)
-  ((added-items :accessor instans-trace-query-node-delta-added-items :initarg :added-items)
-   (removed-items :accessor instans-trace-query-node-delta-removed-items :initarg :removed-items)))
+  ((added-solutions :accessor instans-trace-query-node-delta-added-solutions :initarg :added-solutions)
+   (removed-solutions :accessor instans-trace-query-node-delta-removed-solutions :initarg :removed-solutions)))
 
 ;; instans-trace-token-store-delta
 
@@ -125,8 +125,7 @@
   ;; (:method ((this instans::aggregate-join-node))
   ;;   (list :map (instans::aggregate-join-token-group-map this)))
   (:method ((this instans::query-node))
-    (make-instance 'instans-trace-query-node-state
-		   :items (and (slot-boundp this 'instans::project-index) (instans::solution-modifiers-project-index this))))
+    (make-instance 'instans-trace-query-node-state :solutions (instans::token-store-tokens this)))
   (:method ((this instans::node))
     nil))
 
@@ -180,7 +179,10 @@
   (format stream "\"type\": \"~(~A~)\"" (subseq (string (type-of x)) (length "instans-trace-"))))
 
 (defun instans-trace-slot-to-json (x slot stream)
-  (format stream "\"~(~A~)\": ~A" slot (sparql-value-to-json (slot-value x slot))))
+  (let ((value (slot-value x slot)))
+    (if (keywordp value) 
+	(format stream "\"~(~A~)\": \"~(~A~)\"" slot value)
+	(format stream "\"~(~A~)\": ~A" slot (sparql-value-to-json value :nil-as-false-p nil)))))
 
 (defgeneric instans-trace-entry-print-json (entry stream)
   (:method ((this instans-trace-entry) stream)
@@ -209,20 +211,6 @@
 	  do (format stream ", ")
 	  do (instans-trace-slot-to-json this slot stream))
     (format stream "}~%")))
-  ;; (:method ((this instans-trace-token-store-state) stream)
-  ;;   (format stream "{ \"type\": \"token-store-state\", \"tokens\": ~A}"
-  ;; 	    (sparql-value-to-json (instans-trace-token-store-state-tokens this))))
-  ;; (:method ((this instans-trace-join-node-state) stream)
-  ;;   (format stream "{ \"type\": \"join-node-state\", \"alpha-items\": ~A, \"beta-items\": ~A}"
-  ;; 	    (sparql-value-to-json (instans-trace-join-node-state-alpha-items this)))
-  ;; 	    (sparql-value-to-json (instans-trace-join-node-state-beta-items this)))
-  ;; (:method ((this instans-trace-existence-start-node-state) stream)
-  ;;   (format stream "{ \"type\": \"existence-start-node-state\", \"tokens\": ~A, \"map-items\": ~A}"
-  ;; 	    (sparql-value-to-json (instans-trace-existence-start-node-state-tokens this))
-  ;; 	    (sparql-value-to-json (instans-trace-existence-start-node-state-map-items this))))
-  ;; (:method ((this instans-trace-query-node-state) stream)
-  ;;   (format stream "{ \"type\": \"query-node-state\", \"\": ~A"
-  ;; 	    (sparql-value-to-json (instans-trace-query-node-state-items this)))))
 
 ;; (defgeneric instans-trace-node-delta-print-json (delta stream)
 ;;   (:method ((this instans-trace-token-store-delta) stream)

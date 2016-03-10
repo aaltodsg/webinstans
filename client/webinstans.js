@@ -273,7 +273,7 @@ function processTrace(trace) {
 	var item = trace[i];
 	console.log('process trace item %o', item);
 	var cmd = item["direction"];
-	var op = item["operation"];
+	var op = item["function"];
 	var parms = item["parameters"];
     	var indent = null;
     	if (cmd == "enter") {
@@ -360,11 +360,6 @@ function findNodeTraceItem(nodeName, startingFrom, forward) {
     }
     return null;
 }
-
-// function processState(node, type, state) {
-//     // console.log('Node ' + node);
-//     // console.log(state);
-// }
 
 function showVarPopupMenuDialog(v) {
     // $('#varPopupMenuDialog').dialog( "option", "title", 'Operations on var ' + v);
@@ -480,12 +475,14 @@ function callToHTML(cmd, operation, jsonParams) {
 function jsonListToHTML(list, open, close) {
     var separator='<span class="listSeparator">, </span>';
     var converted = []
+    console.log('jsonListToHTML %o', list);
     for (var i in list) {
 	var o = list[i];
 	converted.push(jsonToHTML(o));
     }
     var result = '<span class="listOpen">' + open + '</span>' + converted.join(separator) + '<span class="listClose">' + close + '</span>';
     // alert(result);
+    console.log('jsonListToHTML %o -> %o', list, result);
     return result;
 }
 
@@ -532,7 +529,7 @@ function makeCurrentOp(n) {
     }
     currentOp = n;
     var traceItem = parsedTrace[n];
-    var operation = traceItem['operation'];
+    var operation = traceItem['function'];
     var id = '#traceOp'+n;
     var elem = $(id);
     elem.addClass('currentOp');
@@ -572,57 +569,47 @@ function filterChecksums(values) {
 }
 
 function processStateChange(node, prevState, newState) {
-    console.log('State of node "%s" changed from "%s" to "%s"', node, prevState, newState);
-    if (newState['map']) {
-	updateTokenMapState(node, prevState['map'] || [], newState['map'] || []);
-    } else if (newState['token-store']) {
-	updateTokenStoreState(node, prevState['token-store'] || [], newState['token-store'] || []);
-    } else {
-    	if (newState['alpha-index']) {
-    	    updateIndexState(node, 'alpha', prevState['alpha-index'] || [], newState['alpha-index'] || []);
-    	}
-    	if (newState['beta-index']) {
-    	    updateIndexState(node, 'beta', prevState['beta-index'] || [], newState['beta-index'] || []);
-    	}
-    }
+    console.log('State of node "%o" changed from "%o" to "%o"', node, prevState, newState);
+    switch (newState['type']) {
+    case 'token-store-state':
+	updateTokenStoreState(node, prevState, newState);
+	break;
+    case 'token-store-state':
+	updateTokenStoreState(node, prevState, newState);
+	break;
+    case 'join-node-state':
+	updateJoinNodeState(node, prevState, newState);
+	break;
+    case 'existence-start-node-state':
+	updateExistenceStartNodeState(node, prevState, newState);
+	break;
+    case 'query-node-state':
+	updateQueryNodeState(node, prevState, newState);
+	break;
     nodeState[node] = newState;
-}
-
-function updateTokenMapState(node, prevItems, newItems) {
-    console.log('updateTokenMapState prev = %o, new = %o', prevItems, newItems);
-    $('#'+node+' text:contains("tokens")').html(newItems.length + ' tokens');
-    console.log('%o has %d tokens', node, newItems.length);
-    var removedItems = setDifference(prevItems, newItems);
-    for (i in removedItems) {
-	console.log('removed %o', itemAsCompactString(removedItems[i]));
-    }
-    var addedItems = setDifference(newItems, prevItems);
-    for (i in addedItems) {
-	console.log('added %o', itemAsCompactString(addedItems[i]));
-    }
-    for (i in newItems) {
-	console.log('current %o', itemAsCompactString(newItems[i]));
     }
 }
 
-function updateTokenStoreState(node, prevTokens, newTokens) {
+function updateTokenStoreState(node, prevState, newState) {
+    // {"type": "token-store-state", "tokens": [{ "type": "token", "value": [{ "type": "checksum", "value": 268959755}]}]}
+    var prevTokens = prevState['tokens'] || [];
+    var newTokens = newState['tokens'] || [];
     console.log('updateTokenStoreState prev = %o, new = %o', prevTokens, newTokens);
     $('#'+node+' text:contains("tokens")').html(newTokens.length + ' tokens');
     console.log('%o has %d tokens', node, newTokens.length);
-    var removedTokens = setDifference(prevTokens, newTokens);
-    for (i in removedTokens) {
-	console.log('removed %o', tokenAsCompactString(removedTokens[i]));
-    }
-    var addedTokens = setDifference(newTokens, prevTokens);
-    for (i in addedTokens) {
-	console.log('added %o', tokenAsCompactString(addedTokens[i]));
-    }
-    for (i in newTokens) {
-	console.log('current %o', tokenAsCompactString(newTokens[i]));
-    }
+}
+
+function updateJoinNodeState(node, prevState, newState) {
+    // {"type": "join-node-state", "alpha-items": { "type": "boolean", "value": false}, "beta-items": { "type": "boolean", "value": false}}
+    updateIndexState(node, 'alpha', prevState['alpha-items'] || [], newState['alpha-items'] || []);
+    updateIndexState(node, 'beta', prevState['beta-items'] || [], newState['beta-items'] || []);
 }
 
 function updateIndexState(node, kind, prevKeyTokenPairs, newKeyTokenPairs) {
+    // [[{ "type": "boolean", "value": false},
+    //   [{ "type": "boolean", "value": false}, { "type": "token", "value": [{ "type": "checksum", "value": 268959755}]}, { "type": "token", "value": [{ "type": "checksum", "value": 268959755}]}]]]
+    // [[[{ "type": "iri", "value": "<http://www.aalto.fi/adolf>"}],
+    //   [{ "type": "boolean", "value": false}, { "type": "token", "value": [{ "type": "checksum", "value": 613030950830435020}, { "type": "binding", "var": { "type": "var", "value": "?2"}, "value": { "type": "integer", "value": 0}}, { "type": "checksum", "value": 613030950830435020}, { "type": "binding", "var": { "type": "var", "value": "?0"}, "value": { "type": "iri", "value": "<http://www.aalto.fi/adolf>"}}]}]]]
     console.log('updateIndexState kind = %s prev = %o, new = %o', kind, prevKeyTokenPairs, newKeyTokenPairs);
     var access = (kind == 'alpha' ? 'last' : 'first')
     var elems = $('#'+node+' text:contains("items"):'+access);
@@ -630,18 +617,27 @@ function updateIndexState(node, kind, prevKeyTokenPairs, newKeyTokenPairs) {
     var newText = oldText.replace(/no|\d+/, '' + newKeyTokenPairs.length);
     console.log('oldText = %o, newText = %o', oldText, newText);
     $(elems).text(newText);
-    // console.log('%o has %d tokens', node, newKeyTokenPairs.length);
-    // var removedKeyTokenPairs = setDifference(prevKeyTokenPairs, newKeyTokenPairs);
-    // for (i in removedKeyTokenPairs) {
-    // 	console.log('removed %o', tokenAsCompactString(removedKeyTokenPairs[i]));
-    // }
-    // var addedKeyTokenPairs = setDifference(newKeyTokenPairs, prevKeyTokenPairs);
-    // for (i in addedKeyTokenPairs) {
-    // 	console.log('added %o', tokenAsCompactString(addedKeyTokenPairs[i]));
-    // }
-    // for (i in newKeyTokenPairs) {
-    // 	console.log('current %o', tokenAsCompactString(newKeyTokenPairs[i]));
-    // }
+}
+
+function updateExistenceStartNodeState(node, prevState, newState) {
+    // {"type": "existence-start-node-state", "tokens": { "type": "boolean", "value": false}, "map-items": { "type": "boolean", "value": false}}
+    updateTokenMapState(node, prevState['map-items'] || [], newState['map-items'] || []);
+}
+
+function updateTokenMapState(node, prevItems, newItems) {
+    console.log('updateTokenMapState prev = %o, new = %o', prevItems, newItems);
+    $('#'+node+' text:contains("tokens")').html(newItems.length + ' tokens');
+    console.log('%o has %d tokens', node, newItems.length);
+}
+
+function updateQueryNodeState(node, prevState, newState) {
+    // {"type": "query-node-state",
+    //  "solutions": [{ "type": "token", "value": [{ "type": "checksum", "value": 613030950830435020}, { "type": "binding", "var": { "type": "var", "value": "?2"}, "value": { "type": "integer", "value": 0}}, { "type": "checksum", "value": 613030950830435020}, { "type": "binding", "var": { "type": "var", "value": "?0"}, "value": { "type": "iri", "value": "<http://www.aalto.fi/adolf>"}}]}]}
+    var prevSolutions = prevState['solutions'] || [];
+    var newSolutions = newState['solutions'] || [];
+    console.log('updateTokenStoreState prev = %o, new = %o', prevSolutions, newSolutions);
+    $('#'+node+' text:contains("solutions")').html(newSolutions.length + ' solutions');
+    console.log('%o has %d solutions', node, newSolutions.length);
 }
 
 function setDifference(s1, s2) {
