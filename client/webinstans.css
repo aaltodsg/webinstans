@@ -111,11 +111,20 @@
     display: none;
     color: gray;
 }
-.cmd {
+.direction {
     font-weight: bold;
 }
 .function {
     color: green;
+}
+.state {
+    color: black;
+}
+.delta-plus {
+    color: green;
+}
+.delta-minus {
+    color: red;
 }
 .var {
     color: red;

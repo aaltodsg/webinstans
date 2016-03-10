@@ -272,11 +272,14 @@ function processTrace(trace) {
     for (var i in trace) {
 	var item = trace[i];
 	console.log('process trace item %o', item);
-	var cmd = item["direction"];
+	var node = item["node"];
+	var direction = item["direction"];
 	var op = item["function"];
 	var parms = item["parameters"];
+	var state = item["state"];
+	var delta = item["delta"];
     	var indent = null;
-    	if (cmd == "enter") {
+    	if (direction == "enter") {
     	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
     	    if (traceLevel == 0) {
     		trackCounter = trackCounter + 1;
@@ -290,7 +293,7 @@ function processTrace(trace) {
     	    traceLevel = traceLevel - 1;
     	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
     	}
-	var content = callToHTML(cmd, op, parms);
+	var content = callToHTML(node, direction, op, parms, state, delta);
     	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
     	    makeCurrentOp(i);
     	});
@@ -467,9 +470,19 @@ function span(cls, txt) {
     return '<span class="' + cls + '">' + txt + '</span>';
 }
 
-function callToHTML(cmd, operation, jsonParams) {
+function callToHTML(node, direction, operation, jsonParams, state, delta) {
     // alert(jsonParams);
-    return span("cmd", cmd) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, '(', ')');
+    return span("direction", direction) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, '(', ')') + '&nbsp;&nbsp;' + makeStateDescription(node, state, delta);
+}
+
+function makeStateDescription(node, state, delta) {
+    return span("state", "xxx") + span("delta-minus", "&nbsp;-yyy")  + span("delta-plus", "&nbsp;+zzz") ;
+
+    // if (state) {
+    // 	switch (state['type']) {
+    // 	    case
+    // 	}
+    // }
 }
 
 function jsonListToHTML(list, open, close) {
@@ -534,7 +547,7 @@ function makeCurrentOp(n) {
     var elem = $(id);
     elem.addClass('currentOp');
     elem[0].scrollIntoView({behavior: "smooth", block: "end"});
-    var cmd = $('#traceOp' + n + ' span[class="cmd"]').html();
+    var direction = $('#traceOp' + n + ' span[class="direction"]').html();
     // var operation = $('#traceOp' + n + ' span[class="function"]').html();
     // alert(operation);
     // console.log('operation %s', operation)
@@ -552,7 +565,7 @@ function makeCurrentOp(n) {
 	}
 	currentNode = node;
 	savedCss[currentNode] = nodeHighlightSelector(currentNode).css(nodePropNames);
-	nodeHighlightSelector(currentNode).css(currentNodeCss(cmd, operation));
+	nodeHighlightSelector(currentNode).css(currentNodeCss(direction, operation));
 	var newState = traceItem['state'];
 	if (newState) {
 	    // createStoreDialog(node);
@@ -571,9 +584,6 @@ function filterChecksums(values) {
 function processStateChange(node, prevState, newState) {
     console.log('State of node "%o" changed from "%o" to "%o"', node, prevState, newState);
     switch (newState['type']) {
-    case 'token-store-state':
-	updateTokenStoreState(node, prevState, newState);
-	break;
     case 'token-store-state':
 	updateTokenStoreState(node, prevState, newState);
 	break;
