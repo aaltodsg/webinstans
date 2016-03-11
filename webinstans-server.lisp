@@ -58,15 +58,16 @@
   ;; (logdescribe server)
   (let ((instans (webinstans-server-instans server)))
     (when instans
-      (let ((dot-file-name (instans::create-temp-file-name)))
+      (let* ((dot-file-name (instans::create-temp-file-name))
+	     (svg-file-name (format nil "~A.svg" dot-file-name)))
 	(with-open-file (stream dot-file-name :direction :output :if-exists :error)
 	  (instans::print-dot instans :stream stream :show-vars-p nil :html-labels-p nil :binding-info-box-p t))
 	(instans::shell-cmd "dot" "-Tsvg" "-O" dot-file-name)
-	(let ((svg (instans::file-contents-to-string (format nil "~A.svg" dot-file-name))))
+	(let ((svg (instans::file-contents-to-string svg-file-name)))
 	  (logmsg "get-dot: dot-result ~A" (message-sample svg))
-	  ;; (delete-file svg)
-	  ;; (delete-file dot-file-name)
-	  (broadcast server "dot-result ~A" svg))))))
+	  (broadcast server "dot-result ~A" svg)
+	  (delete-file dot-file-name)
+	  (delete-file svg-file-name))))))
 
 ;; ((equal command "run")
 ;;  (logmsg "got command run")
@@ -160,13 +161,13 @@
 			       (let ((*trace-output* *logstream*))
 				 (handler-case
 				   (progn
-				     (handler-case
-				     	 (progn 
-				     	   (untrace)
-				     	   (instans::trace-rete)
-				     	   (trace instans-trace-add-call))
-				     	 (condition () nil))
-				       (webinstans::main args :instans instans))
+				     ;; (handler-case
+				     ;; 	 (progn 
+				     ;; 	   (untrace)
+				     ;; 	   (instans::trace-rete)
+				     ;; 	   (trace instans-trace-add-call))
+				     ;;   (condition () nil))
+				     (webinstans::main args :instans instans))
 				   (condition (e)
 				     (setf succeededp nil)
 				     (logmsg "webinstans::main error ~S" e)
