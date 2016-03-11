@@ -117,13 +117,38 @@
 .function {
     color: green;
 }
-.state {
-    color: black;
+
+.stateSummary {
+    /* border-style: solid; */
+    /* border-width: 1px; */
+    color: gray;
 }
-.delta-plus {
+.stateSummary::before {
+    content: "State: ";
+}
+.stateSummaryChanged {
+    /* border-style: solid; */
+    /* border-width: 1px; */
+    font-weight: bold;
+}
+.stateSummaryChanged::before {
+    content: "State changed: ";
+}
+.count {
+}
+.countChanged {
+    color: blue;
+}
+.countPlus::before {
+    content: "\a0+";
+}
+.countPlus {
     color: green;
 }
-.delta-minus {
+.countMinus::before {
+    content: "\a0-";
+}
+.countMinus {
     color: red;
 }
 .var {

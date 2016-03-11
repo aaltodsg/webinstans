@@ -213,7 +213,7 @@ function handleInstansResults() {
     console.log('parsing end');
     var status = stringBefore(instansResults.end, ' ');
     var rest = stringAfter(instansResults.end, ' ');
-    $('#executionInfo').text('Execution ' + instansResults.end + '. ' + $('#ops div').length + ' operations');
+    $('#executionInfo').text('Execution ' + instansResults.end + '. ' + parsedTrace.length + ' operations');
     if (status == "failed") {
 	$('#executionInfo').addClass('executionFailed');
     }
@@ -293,9 +293,13 @@ function processTrace(trace) {
     	    traceLevel = traceLevel - 1;
     	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
     	}
-	var content = callToHTML(node, direction, op, parms, state, delta);
-    	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(content).prepend(indent).click(function () {
+	var callHTML = callToHTML(i, node, direction, op, parms, state, delta);
+    	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(callHTML).prepend(indent);
+        $('#traceOp' + i).click(function () {
     	    makeCurrentOp(i);
+    	});
+        $('#state' + i).click(function () {
+	    alert('state' + i);
     	});
     }
     $('div[class="trace"] span[class="var"]').each(function() {
@@ -470,19 +474,46 @@ function span(cls, txt) {
     return '<span class="' + cls + '">' + txt + '</span>';
 }
 
-function callToHTML(node, direction, operation, jsonParams, state, delta) {
-    // alert(jsonParams);
-    return span("direction", direction) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, '(', ')') + '&nbsp;&nbsp;' + makeStateDescription(node, state, delta);
+function div(cls, content) {
+    return '<div class="' + cls + '">' + content + '</div>';
 }
 
-function makeStateDescription(node, state, delta) {
-    return span("state", "xxx") + span("delta-minus", "&nbsp;-yyy")  + span("delta-plus", "&nbsp;+zzz") ;
+function callToHTML(i, node, direction, operation, jsonParams, state, delta) {
+    // alert(jsonParams);
+    return '<span class="call" id="call' + i + '">' + span("direction", direction) + '&nbsp;' + span("function", operation) + '&nbsp;'
+	+ jsonListToHTML(jsonParams, '(', ')') + '&nbsp;&nbsp;' + stateToHTML(i, node, state, delta) + '</span>'
+}
 
-    // if (state) {
-    // 	switch (state['type']) {
-    // 	    case
-    // 	}
-    // }
+function stateToHTML(i, node, state, delta) {
+    console.log('node %o, state %o, delta %o', node, state, delta);
+    function descr(key) {
+	var count = state[key].length;
+	var removed = (delta ? delta['removed-' + key].length : 0);
+	var added = (delta ? delta['added-' + key].length : 0);
+	if (removed != 0 || added != 0) {
+	    var countSpan = span('countChanged', count + ' '+ key);
+	    return '<span class="stateSummaryChanged" id="state' + i + '">' + countSpan + (removed ? span('countMinus', removed) : '') + (added ? span('countPlus', added) : '')
+	} else {
+	    return '<span class="stateSummary" id="state' + i + '">' + span("count", count + ' '+ key) + '</span>';
+	}
+    }
+    if (state) {
+	switch (state['type']) {
+	case 'token-store-state':
+	    return descr('tokens');
+	    break;
+	case 'join-node-state':
+	    return descr('alpha-items') + '&nbsp;&nbsp;' + descr('beta-items');
+	case 'existence-start-node-state':
+	    return descr('tokens');
+	    break;
+	case 'query-node-state':
+	    return descr('solutions');
+	    break;
+	}
+    } else {
+	return '';
+    }
 }
 
 function jsonListToHTML(list, open, close) {
@@ -596,8 +627,8 @@ function processStateChange(node, prevState, newState) {
     case 'query-node-state':
 	updateQueryNodeState(node, prevState, newState);
 	break;
-    nodeState[node] = newState;
     }
+    nodeState[node] = newState;
 }
 
 function updateTokenStoreState(node, prevState, newState) {
