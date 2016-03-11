@@ -39,6 +39,10 @@ function init()
 {
     $('#tabs').tabs();
     log = document.getElementById("log");
+    // $(document).click(function (e) {
+    // 	console.log('click %o', e);
+    // });
+    
     // $(function() {
     // 	$( "#runContainer" ).accordion({
     // 	    collapsible: true,
@@ -295,12 +299,17 @@ function processTrace(trace) {
     	}
 	var callHTML = callToHTML(i, node, direction, op, parms, state, delta);
     	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(callHTML).prepend(indent);
-        $('#traceOp' + i).click(function () {
-    	    makeCurrentOp(i);
+	let j = i;
+        $('#call' + i).click(function (e) {
+	    console.log('traceOp click %o, $(this) = %o, i = %o, j = %o', e, $(this), i, j);
+    	    makeCurrentOp(j);
     	});
-        $('#state' + i).click(function () {
-	    alert('state' + i);
+        $('#state' + i).click(function (e) {
+	    console.log('state click %o, $(this) = %o, i = %o, j = %o', e, $(this), i, j);
+	    alert('state' + j);
     	});
+	$('#state' + i).data('state', state);
+	$('#state' + i).data('delta', delta);
     }
     $('div[class="trace"] span[class="var"]').each(function() {
 	var from = $(this).text();
@@ -481,34 +490,44 @@ function div(cls, content) {
 function callToHTML(i, node, direction, operation, jsonParams, state, delta) {
     // alert(jsonParams);
     return '<span class="call" id="call' + i + '">' + span("direction", direction) + '&nbsp;' + span("function", operation) + '&nbsp;'
-	+ jsonListToHTML(jsonParams, '(', ')') + '&nbsp;&nbsp;' + stateToHTML(i, node, state, delta) + '</span>'
+	+ jsonListToHTML(jsonParams, '(', ')') + '</span>&nbsp;&nbsp;' + stateToHTML(i, node, state, delta);
 }
 
 function stateToHTML(i, node, state, delta) {
     console.log('node %o, state %o, delta %o', node, state, delta);
-    function descr(key) {
+    function countAndChanges(key) {
 	var count = state[key].length;
 	var removed = (delta ? delta['removed-' + key].length : 0);
 	var added = (delta ? delta['added-' + key].length : 0);
 	if (removed != 0 || added != 0) {
-	    var countSpan = span('countChanged', count + ' '+ key);
-	    return '<span class="stateSummaryChanged" id="state' + i + '">' + countSpan + (removed ? span('countMinus', removed) : '') + (added ? span('countPlus', added) : '')
+	    return { content: span('countChanged', count + ' '+ key) + (removed ? span('countMinus', removed) : '') + (added ? span('countPlus', added) : ''),
+		     spanClass:  'stateSummaryChanged'}
 	} else {
-	    return '<span class="stateSummary" id="state' + i + '">' + span("count", count + ' '+ key) + '</span>';
+	    return { content: span("count", count + ' '+ key),
+		     spanClass: 'stateSummary'};
 	}
+    }
+    function stateDescr(content, spanClass) {
+	return '<span class="' + spanClass + '" id="state' + i + '">' + content + '</span>';
     }
     if (state) {
 	switch (state['type']) {
 	case 'token-store-state':
-	    return descr('tokens');
+	    var aux = countAndChanges('tokens');
+	    return stateDescr(aux.content, aux.spanClass);
 	    break;
 	case 'join-node-state':
-	    return descr('alpha-items') + '&nbsp;&nbsp;' + descr('beta-items');
+	    var beta = countAndChanges('beta-items');
+	    var alpha = countAndChanges('alpha-items');
+	    return stateDescr(beta.content + '&nbsp;&vert;&nbsp;' + alpha.content,
+			      (beta.spanClass == 'stateSummary' && beta.spanClass == 'stateSummary' ? 'stateSummary' : 'stateSummaryChanged'));
 	case 'existence-start-node-state':
-	    return descr('tokens');
+	    var aux = countAndChanges('tokens');
+	    return stateDescr(aux.content, aux.spanClass);
 	    break;
 	case 'query-node-state':
-	    return descr('solutions');
+	    var aux = countAndChanges('solutions');
+	    return stateDescr(aux.content, aux.spanClass);
 	    break;
 	}
     } else {
