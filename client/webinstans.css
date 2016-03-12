@@ -118,37 +118,39 @@
     color: green;
 }
 
-.stateSummary {
+.state.changed::before {
+    content: "State changed: ";
+}
+.state.changed {
+    /* border-style: solid; */
+    /* border-width: 1px; */
+    color: black;
+    font-weight: bold;
+}
+
+.state::before {
+    content: "State ";
+}
+.state {
     /* border-style: solid; */
     /* border-width: 1px; */
     color: gray;
 }
-.stateSummary::before {
-    content: "State: ";
-}
-.stateSummaryChanged {
-    /* border-style: solid; */
-    /* border-width: 1px; */
-    font-weight: bold;
-}
-.stateSummaryChanged::before {
-    content: "State changed: ";
-}
-.count {
-}
-.countChanged {
+.state .count.changed {
     color: blue;
 }
-.countPlus::before {
+.state .count {
+}
+.state .plus::before {
     content: "\a0+";
 }
-.countPlus {
+.state .plus {
     color: green;
 }
-.countMinus::before {
+.state .minus::before {
     content: "\a0-";
 }
-.countMinus {
+.state .minus {
     color: red;
 }
 .var {

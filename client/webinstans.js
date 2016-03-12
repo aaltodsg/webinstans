@@ -63,11 +63,11 @@ function init()
     // }); 
     initWebSocket();
     $('#rewindButton').click(function() {
-	makeCurrentOp(0);
+	moveToOp(0);
     });
     $('#stepBackButton').click(function() {
 	if (currentOp) {
-	    makeCurrentOp(currentOp - 1);
+	    moveToOp(currentOp - 1);
 	}
     });
     $('#stopButton').click(function() {
@@ -78,11 +78,11 @@ function init()
     });
     $('#stepForwardButton').click(function() {
 	if (currentOp < $('#ops div').length - 1) {
-	    makeCurrentOp(currentOp + 1);
+	    moveToOp(currentOp + 1);
 	}
     });
     $('#endButton').click(function() {
-	makeCurrentOp($('#ops div').length - 1);
+	moveToOp($('#ops div').length - 1);
     });
     $('#initializeInstans').click(function() {
 	launchInstans();
@@ -221,7 +221,7 @@ function handleInstansResults() {
     if (status == "failed") {
 	$('#executionInfo').addClass('executionFailed');
     }
-    makeCurrentOp(0);
+    moveToOp(0);
     // showEdgeTraverseInfo();
     // for (var k = 0 ; k <= trackCounter; k++) {
     //     highlightTrackEnterOperations(k);
@@ -274,7 +274,8 @@ function onMessage(evt)
 function processTrace(trace) {
     // $('#ops').append(parsedTrace);
     for (var i in trace) {
-	var item = trace[i];
+	let j = i;
+	var item = trace[j];
 	console.log('process trace item %o', item);
 	var node = item["node"];
 	var direction = item["direction"];
@@ -288,29 +289,45 @@ function processTrace(trace) {
     	    if (traceLevel == 0) {
     		trackCounter = trackCounter + 1;
     		trackEnterOps.push([]);
-    		console.log('>>>Increment trackCounter to ' + trackCounter + ' at operation ' + i);
+    		console.log('>>>Increment trackCounter to ' + trackCounter + ' at operation ' + j);
     		console.log('>>>trackEnterOps[' + (trackCounter-1) + ']' + trackEnterOps[trackCounter-1]);
     	    }
     	    traceLevel = traceLevel + 1;
-    	    trackEnterOps[(trackCounter-1)].push(i);
+    	    trackEnterOps[(trackCounter-1)].push(j);
     	} else {
     	    traceLevel = traceLevel - 1;
     	    indent = new Array((traceLevel+1)*traceLevelIndent).join('&nbsp;')
     	}
-	var callHTML = callToHTML(i, node, direction, op, parms, state, delta);
-    	$('#ops').append('<div id="traceOp' + i + '"class="trace"></div>').find('div:last-child').append(callHTML).prepend(indent);
-	let j = i;
-        $('#call' + i).click(function (e) {
-	    console.log('traceOp click %o, $(this) = %o, i = %o, j = %o', e, $(this), i, j);
-    	    makeCurrentOp(j);
-    	});
-        $('#state' + i).click(function (e) {
-	    console.log('state click %o, $(this) = %o, i = %o, j = %o', e, $(this), i, j);
-	    alert('state' + j);
-    	});
-	$('#state' + i).data('state', state);
-	$('#state' + i).data('delta', delta);
+	var callHTML = callToHTML(j, node, direction, op, parms);
+	var stateHTML = stateToHTML(i, node, state, delta);
+    	$('#ops').append('<div id="traceOp' + j + '"class="trace"></div>').find('div:last-child').append(callHTML).append('<span>&nbsp;&nbsp;</span>').append(stateHTML).prepend(indent);
+	$('#traceOp' + j + ' .call').data('index', j);
+	$('#traceOp' + j + ' .state').data('state', state);
+	$('#traceOp' + j + ' .state').data('delta', delta);
     }
+    $('.call').click(function (e) {
+	var index = $(this).data('index');
+	console.log('click call %d, $(this) = %o, index = %o', e, index, $(this));
+    	moveToOp(index);
+    });
+    $('.state .count').click(function (e) {
+	var parent = $(this).parent();
+	var key = parent.attr('key');
+	var state = parent.data('state');
+	console.log('click state key = %o, state = %o\n%o', key, state, state[key]);
+    });
+    $('.state.changed .plus').click(function (e) {
+	var parent = $(this).parent();
+	var key = 'added-' + parent.attr('key');
+	var delta = parent.data('delta');
+	console.log('click delta key = %o, delta = %o\n%o', key, delta, delta[key]);
+    });
+    $('.state.changed .minus').click(function (e) {
+	var parent = $(this).parent();
+	var key = 'removed-' + parent.attr('key');
+	var delta = parent.data('delta');
+	console.log('click delta key = %o, delta = %o\n%o', key, delta, delta[key]);
+    });
     $('div[class="trace"] span[class="var"]').each(function() {
 	var from = $(this).text();
 	if (typeof varNumericToSymbolicMapping[from] != "undefined") {
@@ -487,45 +504,42 @@ function div(cls, content) {
     return '<div class="' + cls + '">' + content + '</div>';
 }
 
-function callToHTML(i, node, direction, operation, jsonParams, state, delta) {
+function callToHTML(i, node, direction, operation, jsonParams) {
     // alert(jsonParams);
-    return '<span class="call" id="call' + i + '">' + span("direction", direction) + '&nbsp;' + span("function", operation) + '&nbsp;'
-	+ jsonListToHTML(jsonParams, '(', ')') + '</span>&nbsp;&nbsp;' + stateToHTML(i, node, state, delta);
+    return span('call', span("direction", direction) + '&nbsp;' + span("function", operation) + '&nbsp;' + jsonListToHTML(jsonParams, '(', ')'));
 }
 
 function stateToHTML(i, node, state, delta) {
     console.log('node %o, state %o, delta %o', node, state, delta);
-    function countAndChanges(key) {
+    function stateDescr(key) {
 	var count = state[key].length;
 	var removed = (delta ? delta['removed-' + key].length : 0);
 	var added = (delta ? delta['added-' + key].length : 0);
+	var content;
+	var cls;
 	if (removed != 0 || added != 0) {
-	    return { content: span('countChanged', count + ' '+ key) + (removed ? span('countMinus', removed) : '') + (added ? span('countPlus', added) : ''),
-		     spanClass:  'stateSummaryChanged'}
+	    cls = 'state changed';
+	    content = span('count changed', count + ' '+ key) + (removed ? span('minus', removed) : '') + (added ? span('plus', added) : '');
 	} else {
-	    return { content: span("count", count + ' '+ key),
-		     spanClass: 'stateSummary'};
+	    cls = 'state';
+	    content = span("count", count + ' '+ key);
 	}
-    }
-    function stateDescr(content, spanClass) {
-	return '<span class="' + spanClass + '" id="state' + i + '">' + content + '</span>';
+	return '<span class="' + cls + '" key="' + key + '">' + content + '</span>';
     }
     if (state) {
 	switch (state['type']) {
 	case 'token-store-state':
-	    var aux = countAndChanges('tokens');
-	    return stateDescr(aux.content, aux.spanClass);
+	    return stateDescr('tokens', 'state');
 	    break;
 	case 'join-node-state':
-	    var beta = countAndChanges('beta-items');
-	    var alpha = countAndChanges('alpha-items');
-	    return stateDescr(beta.content + '&nbsp;&vert;&nbsp;' + alpha.content,
-			      (beta.spanClass == 'stateSummary' && beta.spanClass == 'stateSummary' ? 'stateSummary' : 'stateSummaryChanged'));
+	    return stateDescr('beta-items', 'stateBeta') + '<span>&nbsp;&vert;&nbsp;</span>' + stateDescr('alpha-items', 'stateAlpha');
 	case 'existence-start-node-state':
+	    return '';
 	    var aux = countAndChanges('tokens');
 	    return stateDescr(aux.content, aux.spanClass);
 	    break;
 	case 'query-node-state':
+	    return '';
 	    var aux = countAndChanges('solutions');
 	    return stateDescr(aux.content, aux.spanClass);
 	    break;
@@ -534,6 +548,48 @@ function stateToHTML(i, node, state, delta) {
 	return '';
     }
 }
+
+// function stateToHTML(i, node, state, delta) {
+//     console.log('node %o, state %o, delta %o', node, state, delta);
+//     function countAndChanges(key) {
+// 	var count = state[key].length;
+// 	var removed = (delta ? delta['removed-' + key].length : 0);
+// 	var added = (delta ? delta['added-' + key].length : 0);
+// 	if (removed != 0 || added != 0) {
+// 	    return { content: span('countChanged', count + ' '+ key) + (removed ? span('countMinus', removed) : '') + (added ? span('countPlus', added) : ''),
+// 		     spanClass:  'stateSummaryChanged'}
+// 	} else {
+// 	    return { content: span("count", count + ' '+ key),
+// 		     spanClass: 'stateSummary'};
+// 	}
+//     }
+//     function stateDescr(content, spanClass) {
+// 	return '<span class="' + spanClass + '" id="state' + i + '">' + content + '</span>';
+//     }
+//     if (state) {
+// 	switch (state['type']) {
+// 	case 'token-store-state':
+// 	    var aux = countAndChanges('tokens');
+// 	    return stateDescr(aux.content, aux.spanClass);
+// 	    break;
+// 	case 'join-node-state':
+// 	    var beta = countAndChanges('beta-items');
+// 	    var alpha = countAndChanges('alpha-items');
+// 	    return stateDescr(beta.content + '&nbsp;&vert;&nbsp;' + alpha.content,
+// 			      (beta.spanClass == 'stateSummary' && beta.spanClass == 'stateSummary' ? 'stateSummary' : 'stateSummaryChanged'));
+// 	case 'existence-start-node-state':
+// 	    var aux = countAndChanges('tokens');
+// 	    return stateDescr(aux.content, aux.spanClass);
+// 	    break;
+// 	case 'query-node-state':
+// 	    var aux = countAndChanges('solutions');
+// 	    return stateDescr(aux.content, aux.spanClass);
+// 	    break;
+// 	}
+//     } else {
+// 	return '';
+//     }
+// }
 
 function jsonListToHTML(list, open, close) {
     var separator='<span class="listSeparator">, </span>';
@@ -583,6 +639,15 @@ function jsonToHTML(o) {
 
 function nodeHighlightSelector(node) {
     return $('#' + node + ' ellipse');
+}
+
+function moveToOp(n) {
+    if (n < currentOp) {
+	makeCurrentOp(0);
+    }
+    for (var i = currentOp + 1; i <= n; i++) {
+	makeCurrentOp(i);
+    }
 }
 
 function makeCurrentOp(n) {
