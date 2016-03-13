@@ -129,7 +129,7 @@
 }
 
 .state::before {
-    content: "State ";
+    content: "State: ";
 }
 .state {
     /* border-style: solid; */
@@ -140,17 +140,21 @@
     color: blue;
 }
 .state .count {
+    /* border: 0.5px inset black; */
+    background: #cccccc;
 }
 .state .plus::before {
     content: "\a0+";
 }
 .state .plus {
+    background: #cccccc;
     color: green;
 }
 .state .minus::before {
     content: "\a0-";
 }
 .state .minus {
+    background: #cccccc;
     color: red;
 }
 .var {
