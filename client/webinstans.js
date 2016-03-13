@@ -226,10 +226,10 @@ function handleInstansResults() {
     // for (var k = 0 ; k <= trackCounter; k++) {
     //     highlightTrackEnterOperations(k);
     // }
-    $('.var').click(function() {
-	showVarPopupMenuDialog($(this).text());
-    });
-    addNodeButtonHandlers();
+    // $('.var').click(function() {
+    // 	showVarPopupMenuDialog($(this).text());
+    // });
+    // addNodeButtonHandlers();
     $('#tabs').tabs('refresh');
     return true;
 }
@@ -301,6 +301,7 @@ function processTrace(trace) {
 	var callHTML = callToHTML(j, node, direction, op, parms);
 	var stateHTML = stateToHTML(i, node, state, delta);
     	$('#ops').append('<div id="traceOp' + j + '"class="trace"></div>').find('div:last-child').append(callHTML).append('<span>&nbsp;&nbsp;</span>').append(stateHTML).prepend(indent);
+	$('#traceOp' + j).data('node', node);
 	$('#traceOp' + j + ' .call').data('index', j);
 	$('#traceOp' + j + ' .state').data('state', state);
 	$('#traceOp' + j + ' .state').data('delta', delta);
@@ -315,6 +316,7 @@ function processTrace(trace) {
 	var key = parent.attr('key');
 	var state = parent.data('state');
 	console.log('click state key = %o, state = %o\n%o', key, state, state[key]);
+	openStateDialog($(this));
     });
     $('.state.changed .plus').click(function (e) {
 	var parent = $(this).parent();
@@ -340,46 +342,87 @@ function processTrace(trace) {
     }
 }
 
-function createStoreDialog(id) {
-    $('#' + id).each(function () {
-	var dialog_id = id + '_tokens';
-	if (!document.getElementById(dialog_id)) {
-	    $('body').append('<div id="' + dialog_id + '" title="' + id + '"><div>&nbsp;</div></div>');
-	    $('#' + dialog_id).dialog({width: 40, height: 30, autoOpen: false});
-	    $('#' + dialog_id).attr('class', 'token-store');
-	    $(this).click(function(e) {
-		$('#' + dialog_id).dialog('open');
-		// var pos = $(e.delegateTarget).position();
-		// var x = pos.x;
-		// var y = pos.y;
-		// var width = e.delegateTarget.offsetWidth;
-		// var height = e.delegateTarget.offsetHeight;
-		// console.log('click on ' + id + ', target = %o [%o], pos=%o, [%o, %o]', e.delegateTarget, typeof(e.delegateTarget), pos, width, height);
-		// $('#' + dialog_id).css({position: 'absolute', top: y, left: x});
-		$('#' + dialog_id).dialog('widget').position({
-		    // my: 'left top',
-		    // at: 'left bottom',
-		    my: 'center top',
-		    at: 'center bottom',
-		    of: e.delegateTarget
-		});
-	    });
+function openStateDialog(jq) {
+    var state = jq.parent();
+    var tr = state.parent();
+    var node = tr.data('node')['value'];
+    var key = state.attr('key');
+    var dialog_id = node + '-' + key;
+    var title = node + ' ' + key;
+    // console.log('openStateDialog jq %o parent %o node %o key %o, dialog_id %o', jq, jq.parent(), node, key, dialog_id);
+    if ($('#' + dialog_id).size() == 0) {
+	jq.append('<div id="' + dialog_id + '" title="' + title + '"><div>&nbsp;</div></div>');
+	$('#' + dialog_id).dialog({width: 40, height: 30});
+	$('#' + dialog_id).dialog('widget').position({
+	    // my: 'left top',
+	    // at: 'left bottom',
+	    my: 'center top',
+	    at: 'center bottom',
+	    of: jq
+	});
+    } else {
+	$('#' + dialog_id).dialog('open');
+    }
+    var state = state.data('state');
+    console.log('#%s = %o', dialog_id, $('#' + dialog_id));
+    $('#' + dialog_id).each(function () {
+	$(this).html('');
+	var list = state[key];
+	for (i in list) {
+	    var it = list[i];
+	    console.log('adding %o to %o', it, $(this));
+	    var itString;
+	    if (key == 'tokens' || key == 'solutions') {
+		itString = tokenAsCompactString(it);
+	    } else if (key == 'beta-items' || key == 'alpha-items') {
+		itString = it[0].map(function (x) { return x['value']}).join(separator=", ") + ' -> ' + tokenAsCompactString(it[1]);
+	    } else {
+		itString = '???';
+	    }
+	    $(this).append(div('stateLine', span('stateLineContent', itString)));
 	}
     });
 }
 
-function addNodeButtonHandlers() {
-    console.log('----> addNodeButtonHandlers');
-    $('g[class="node"]').each(function () {
-    	console.log('Testing %o', $(this));
-    	var id = $(this).attr('id');
-    	if (id && id.match(/^(beta|alpha)_memory\d+$/)) {
-    	    console.log('Found %o', id);
-	    createStoreDialog(id);
-    	}
-    });
-    console.log('<---- addNodeButtonHandlers');
-}
+//     $('#' + id).each(function () {
+// 	var dialog_id = id + '_tokens';
+// 	if (!document.getElementById(dialog_id)) {
+// 	    $('body').append('<div id="' + dialog_id + '" title="' + id + '"><div>&nbsp;</div></div>');
+// 	    $('#' + dialog_id).dialog({width: 40, height: 30, autoOpen: false});
+// 	    $('#' + dialog_id).attr('class', 'token-store');
+// 	    $(this).click(function(e) {
+// 		$('#' + dialog_id).dialog('open');
+// 		// var pos = $(e.delegateTarget).position();
+// 		// var x = pos.x;
+// 		// var y = pos.y;
+// 		// var width = e.delegateTarget.offsetWidth;
+// 		// var height = e.delegateTarget.offsetHeight;
+// 		// console.log('click on ' + id + ', target = %o [%o], pos=%o, [%o, %o]', e.delegateTarget, typeof(e.delegateTarget), pos, width, height);
+// 		// $('#' + dialog_id).css({position: 'absolute', top: y, left: x});
+// 		$('#' + dialog_id).dialog('widget').position({
+// 		    // my: 'left top',
+// 		    // at: 'left bottom',
+// 		    my: 'center top',
+// 		    at: 'center bottom',
+// 		    of: e.delegateTarget
+// 		});
+// 	    });
+// 	}
+//     });
+// }
+
+// function addNodeButtonHandlers() {
+//     console.log('----> addNodeButtonHandlers');
+//     $('g[class="node"]').each(function () {
+//     	console.log('Testing %o', $(this));
+//     	var id = $(this).attr('id');
+//     	if (id && id.match(/^(beta|alpha)_memory\d+$/)) {
+//     	    console.log('Found %o', id);
+// 	    createStoreDialog(id);
+//     	}
+//     });
+//     console.log('<---- addNodeButtonHandlers');
+// }
 
 function findNodeTraceItem(nodeName, startingFrom, forward) {
     var delta = (forward ? 1 : -1);
@@ -394,16 +437,16 @@ function findNodeTraceItem(nodeName, startingFrom, forward) {
     return null;
 }
 
-function showVarPopupMenuDialog(v) {
-    // $('#varPopupMenuDialog').dialog( "option", "title", 'Operations on var ' + v);
-    // $('#varPopupMenuDialog').html('<ul id="varPopupMenu"><li id="define var">Show nodes defining ' + v + '</li><li id="use var">Show nodes using ' + v + '</li></ul>');
-    $('#varMenu').html('<li class="ui-widget-header">Commands</li><li id="define var">Show nodes defining ' + v + '</li><li id="use var">Show nodes using ' + v + '</li><li>Cancel</li>');
-    $('#varMenu').menu();
-    $('#varMenu').draggable();
-    showElement('#varMenu', true);
-    // showElement('#varInfo', true);
-    // $('#varPopupMenuDialog').dialog("open");
-}
+// function showVarPopupMenuDialog(v) {
+//     // $('#varPopupMenuDialog').dialog( "option", "title", 'Operations on var ' + v);
+//     // $('#varPopupMenuDialog').html('<ul id="varPopupMenu"><li id="define var">Show nodes defining ' + v + '</li><li id="use var">Show nodes using ' + v + '</li></ul>');
+//     $('#varMenu').html('<li class="ui-widget-header">Commands</li><li id="define var">Show nodes defining ' + v + '</li><li id="use var">Show nodes using ' + v + '</li><li>Cancel</li>');
+//     $('#varMenu').menu();
+//     $('#varMenu').draggable();
+//     showElement('#varMenu', true);
+//     // showElement('#varInfo', true);
+//     // $('#varPopupMenuDialog').dialog("open");
+// }
 
 function getOrInitialize(map, key) {
     if (!map.hasOwnProperty(key)) {
@@ -774,6 +817,7 @@ function setDifference(s1, s2) {
 
 function tokenAsCompactString(token) {
     function convertValues(v) {
+	console.log('convertValues %o', v);
 	if (v instanceof Array) {
 	    return filterChecksums(v).map(x => convertValues(x)).join();
 	} else if (v['type'] == 'binding') {
