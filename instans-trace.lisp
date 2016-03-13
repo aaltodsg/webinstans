@@ -133,13 +133,20 @@
   (:method ((this instans-trace) &key node function parameters state)
     (instans-trace-add-call this :node node :direction :exit :function function :parameters parameters :state state)))
 
+(defun convert-key-tokens-to-var-token-list (node index)
+  (loop for (k tokens) in (instans::index-tokens index)
+	for vars = (mapcar #'(lambda (v) (instans::reverse-resolve-binding (instans::node-instans node) v)) (instans::node-use node))
+	nconc (loop for token in tokens collect (list vars token))))
+
 (defgeneric instans-trace-node-state (node)
   (:method ((this instans::token-store))
     (make-instance 'instans-trace-token-store-state :tokens (instans::token-store-tokens this)))
   (:method ((this instans::join-node))
     (make-instance 'instans-trace-join-node-state
-		   :alpha-items (and (instans::join-alpha-index this) (instans::index-tokens (instans::join-alpha-index this)))
-		   :beta-items (and (instans::join-beta-index this) (instans::index-tokens (instans::join-beta-index this)))))
+		   :alpha-items (and (instans::join-alpha-index this)
+				     (convert-key-tokens-to-var-token-list this (instans::join-alpha-index this)))
+		   :beta-items (and (instans::join-beta-index this)
+				     (convert-key-tokens-to-var-token-list this (instans::join-beta-index this)))))
   (:method ((this instans::existence-start-node))
     (make-instance 'instans-trace-existence-start-node-state
 		   :tokens (instans::token-store-tokens this)
@@ -263,7 +270,7 @@
 (defun json-typed-value (type value)
   (format nil "{ \"type\": \"~A\", \"value\": ~A}" type value))
 
-(defun sparql-value-type-as-json-string (x &key (nil-as-false-p t))
+(defun sparql-value-type-as-json-string (x &key (nil-as-false-p nil))
   (cond ((null x) (if nil-as-false-p "boolean" "list"))
 	((typep x 'instans::xsd-string-value) "string")
 	((typep x 'instans::xsd-boolean-value) "boolean")
@@ -286,7 +293,7 @@
 	       (t "list")))
 	(t "unknown")))
 
-(defun sparql-value-to-json (x &key (nil-as-false-p t))
+(defun sparql-value-to-json (x &key (nil-as-false-p nil))
   (let* ((tp nil) (tokenp nil) (r
   (let ((type (sparql-value-type-as-json-string x :nil-as-false-p nil-as-false-p)))
     (cond
@@ -324,7 +331,7 @@
   (json-typed-value "checksum" (second x)))
 
 (defun binding-to-json (x)
-  (format nil "{ \"type\": \"binding\", \"var\": ~A, \"value\": ~A}" (sparql-var-to-json (first x)) (sparql-value-to-json (second x))))
+  (format nil "{ \"type\": \"binding\", \"var\": ~A, \"value\": ~A}" (sparql-var-to-json (first x)) (sparql-value-to-json (second x) :nil-as-false-p t)))
 
 (defun downcase-and-dash-to-underline (string)
   (coerce (loop for ch in (coerce string 'list)

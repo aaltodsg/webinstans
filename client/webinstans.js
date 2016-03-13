@@ -368,6 +368,7 @@ function openStateDialog(jq) {
     $('#' + dialog_id).each(function () {
 	$(this).html('');
 	var list = state[key];
+	console.log('adding items %o to dialog', list);
 	for (i in list) {
 	    var it = list[i];
 	    console.log('adding %o to %o', it, $(this));
@@ -816,6 +817,7 @@ function setDifference(s1, s2) {
 }
 
 function tokenAsCompactString(token) {
+    console.log('tokenAsCompactString %o', token);
     function convertValues(v) {
 	console.log('convertValues %o', v);
 	if (v instanceof Array) {

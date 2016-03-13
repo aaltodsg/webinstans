@@ -161,12 +161,12 @@
 			       (let ((*trace-output* *logstream*))
 				 (handler-case
 				   (progn
-				     ;; (handler-case
-				     ;; 	 (progn 
-				     ;; 	   (untrace)
-				     ;; 	   (instans::trace-rete)
-				     ;; 	   (trace instans-trace-add-call))
-				     ;;   (condition () nil))
+				     (handler-case
+				     	 (progn 
+				     	   (untrace)
+				     	   (instans::trace-rete)
+				     	   (trace instans-trace-add-call))
+				       (condition () nil))
 				     (webinstans::main args :instans instans))
 				   (condition (e)
 				     (setf succeededp nil)
