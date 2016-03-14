@@ -7,17 +7,26 @@
 /*     width: 100%; */
 /*     margin: 0 auto; */
 /* } */
+/* #traceControl { */
+/*     float: left; */
+/* } */
+/* .paragraph { */
+/*     float: left; */
+/* } */
 #player {
-    display: none;
+    display: inline-block;
     border: 3px solid #666;
     width: 20%;
-    /* float: left; */
+    float: left;
     margin: 5px;
     padding: 5px;
     border: 0.5px solid #666;
     /* position: relative; */
     /* top: 50%; */
     /* overflow: auto; */
+}
+#stopConditions {
+    display: inline-block;
 }
 /* #commands { */
 /*     /\* border: 3px solid #666; *\/ */
@@ -72,8 +81,10 @@
 #vars {
     display: none;
 }
-/* #graph { */
-/*     display: none; */
+#graph {
+    clear: both;
+    display: block;
+    position: relative;
 /*     /\* background: #ccc none repeat scroll 0 0; *\/ */
 /*     /\* border: 3px solid #666; *\/ */
 /*     margin: 5px; */
@@ -81,7 +92,7 @@
 /*     position: relative; */
 /*     /\* <!-- overflow: auto; --> *\/ */
 /*     visibility: hidden; */
-/* } */
+}
 
 .trace {
     font-family: monospace;
