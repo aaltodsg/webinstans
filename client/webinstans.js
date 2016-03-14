@@ -817,13 +817,12 @@ function setDifference(s1, s2) {
 }
 
 function tokenAsCompactString(token) {
-    console.log('tokenAsCompactString %o', token);
     function convertValues(v) {
 	console.log('convertValues %o', v);
 	if (v instanceof Array) {
 	    return filterChecksums(v).map(x => convertValues(x)).join();
 	} else if (v['type'] == 'binding') {
-	    return varNumericToSymbolicMapping[v['var']['value']] + " = " + v['value']['value'];
+	    return v['var']['value'] + " = " + sparqlValueToString(v['value']['value']);
 	} else if (v instanceof Object) {
 	    return '{' + Object.keys(v).map(k => k + ': ' + convertValues(v[k])).join(separator=", ") + '}';
 	} else {
@@ -831,22 +830,29 @@ function tokenAsCompactString(token) {
 	}
 	    
     }
-    return token['type'] + '(' + convertValues(token['value']) + ')';
+    var result = token['type'] + '(' + convertValues(token['value']) + ')';
+    console.log('tokenAsCompactString %o -> %o', token, result);
+    return result;
 }
 
-function tokenAsString(token) {
-    function convertValues(v) {
-	if (v instanceof Array) {
-	    return v.map(x => convertValues(x)).join();
-	} else if (v instanceof Object) {
-	    return '{' + Object.keys(v).map(k => k + ': ' + convertValues(v[k])).join(separator=", ") + '}';
-	} else {
-	    return v;
-	}
-	    
-    }
-    return token['type'] + '(' + convertValues(token['value']) + ')';
+function sparqlValueToString(v) {
+    console.log('sparqlValueToString %o', v);
+    return htmlEncode(v);
 }
+
+// function tokenAsString(token) {
+//     function convertValues(v) {
+// 	if (v instanceof Array) {
+// 	    return v.map(x => convertValues(x)).join();
+// 	} else if (v instanceof Object) {
+// 	    return '{' + Object.keys(v).map(k => k + ': ' + convertValues(v[k])).join(separator=", ") + '}';
+// 	} else {
+// 	    return v;
+// 	}
+	    
+//     }
+//     return token['type'] + '(' + convertValues(token['value']) + ')';
+// }
 
 function onError(evt)
 {
