@@ -352,7 +352,8 @@ function openStateDialog(jq) {
     // console.log('openStateDialog jq %o parent %o node %o key %o, dialog_id %o', jq, jq.parent(), node, key, dialog_id);
     if ($('#' + dialog_id).size() == 0) {
 	jq.append('<div id="' + dialog_id + '" title="' + title + '"><div>&nbsp;</div></div>');
-	$('#' + dialog_id).dialog({width: 40, height: 30});
+	$('#' + dialog_id).data('titleHasVarsSet', false);
+	$('#' + dialog_id).dialog({minWidth: 100, minHeight: 40});
 	$('#' + dialog_id).dialog('widget').position({
 	    // my: 'left top',
 	    // at: 'left bottom',
@@ -376,7 +377,13 @@ function openStateDialog(jq) {
 	    if (key == 'tokens' || key == 'solutions') {
 		itString = tokenAsCompactString(it);
 	    } else if (key == 'beta-items' || key == 'alpha-items') {
-		itString = it[0].map(function (x) { return x['value']}).join(separator=", ") + ' -> ' + tokenAsCompactString(it[1]);
+		// itString = it[0].map(function (x) { return x['value']}).join(separator=", ") + ' -> ' + tokenAsCompactString(it[1]);
+		if (!$('#' + dialog_id).data('titleHasVarsSet')) {
+		    $('#' + dialog_id).data('titleHasVarsSet', true);
+		    var vars = (it[0].length > 0 ? ': ' + it[0].map(function (x) { return x['value']}).join(separator=", ") : '');
+		    $('#' + dialog_id).dialog('option', 'title', title + vars);
+		}
+		itString = tokenAsCompactString(it[1]);
 	    } else {
 		itString = '???';
 	    }
@@ -573,20 +580,13 @@ function stateToHTML(i, node, state, delta) {
     if (state) {
 	switch (state['type']) {
 	case 'token-store-state':
-	    return stateDescr('tokens', 'state');
-	    break;
+	    return stateDescr('tokens');
 	case 'join-node-state':
 	    return stateDescr('beta-items', 'stateBeta') + '<span>&nbsp;&vert;&nbsp;</span>' + stateDescr('alpha-items', 'stateAlpha');
 	case 'existence-start-node-state':
-	    return '';
-	    var aux = countAndChanges('tokens');
-	    return stateDescr(aux.content, aux.spanClass);
-	    break;
+	    return stateDescr('tokens');
 	case 'query-node-state':
-	    return '';
-	    var aux = countAndChanges('solutions');
-	    return stateDescr(aux.content, aux.spanClass);
-	    break;
+	    return stateDescr('solutions');
 	}
     } else {
 	return '';
@@ -830,7 +830,7 @@ function tokenAsCompactString(token) {
 	}
 	    
     }
-    var result = token['type'] + '(' + convertValues(token['value']) + ')';
+    var result = '[' + convertValues(token['value']) + ']';
     console.log('tokenAsCompactString %o -> %o', token, result);
     return result;
 }

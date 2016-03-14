@@ -232,3 +232,6 @@
     /* color: red; */
     font-size: 50%;
 }
+.ui-dialog-content {
+    font-size: 50%;
+}
