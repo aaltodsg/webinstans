@@ -112,6 +112,83 @@ function init()
     // });
     // showElement('#varInfo', false);
     showElement('#varMenu', false);
+    initStopDialog();
+}
+
+// http://germanrumm.eu/examples/jqgrid-autocomplete/
+    function autocomplete_element(value, options) {
+  	// create input element
+	var $ac = $('<input type="text" />');
+	// setting value to the one passed from jqGrid
+	$ac.val(value);
+	// creating autocomplete
+	$ac.autocomplete(
+	    {
+		// source: ["Product #1", "Product #2", "Product #3", "Product #4"]
+		source: ["Product #1", "Product #2", "Product #3", "Product #4"]
+	    }
+	);
+	// returning element back to jqGrid
+	return $ac.get(0); 
+
+    }
+    
+    function autocomplete_value(elem, op, v) {
+	if (op == 'set') {
+	    $(elem).val(v);
+	}
+	return $(elem).val();
+    }
+    
+
+function initStopDialog() {
+// http://js-grid.com/
+// http://germanrumm.eu/examples/jqgrid-autocomplete/
+    var lastsel;
+    $("#ex1").jsGrid(
+	{
+	    editurl: "dummy.php",
+	    datatype: "local",
+	    caption: "Autocomplete example",
+	    colNames: ["ID", "Product ID", "Price"],
+	    colModel: [
+		{name: "id", index: "id"},
+		{name: "product", index: "product", editable: true, edittype: 'custom', editoptions: {
+		    'custom_element' : autocomplete_element, 
+		    'custom_value' : autocomplete_value
+		}
+		},
+		{name: "price", index: "price", editable: true}
+	    ],
+	    pager: '#pager',
+	    ondblClickRow: function(id) {
+		if (id) {
+		    $('#ex1').jqGrid('restoreRow', lastsel);
+		    $('#ex1').jqGrid('editRow', id, true);
+		    lastsel = id;
+		}
+	    }
+	}).navGrid('#pager');
+    var mydata = [
+	{id:"1", product: "Product #1", "price": 100},
+	{id:"2", product: "Product #2", "price": 200},
+	{id:"3", product: "Product #3", "price": 300},
+	{id:"4", product: "Product #1", "price": 100},
+	{id:"5", product: "Product #3", "price": 300},
+	{id:"6", product: "Product #2", "price": 200}];
+	    
+    for ( var i=0; i<=mydata.length;i++) {
+	$("#ex1").jqGrid('addRowData',i+1,mydata[i]);
+    }
+ 	<!--   var _gaq = _gaq || []; -->
+	<!--   _gaq.push(['_setAccount', 'UA-6456322-2']); -->
+	<!--   _gaq.push(['_trackPageview']); -->
+	 
+	<!--   (function() { -->
+	<!-- 	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true; -->
+	<!-- 	ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js'; -->
+	<!-- 	var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s); -->
+	<!--   })(); -->
 }
 
 function initWebSocket()
