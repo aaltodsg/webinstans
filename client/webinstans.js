@@ -25,6 +25,18 @@ var varNumericToSymbolicMapping = new Object();
 var varSymbolicToNumericMapping = new Object();
 var tokenStores = {};
 var nodeState = {};
+var knownOperations = ["add-token", "add-alpha-token", "add-beta-token" ||
+		       "remove-token", "remove-alpha-token", "remove-beta-token" ||
+		       "token-store-put", "token-store-put-if-missing", 
+		       "token-store-remove", "token-store-remove-if-exists", "token-store-clear" ||
+		       "index-put-token", "index-remove-token" ||
+		       "token-map-put", "token-map-remove"];
+
+var knownOperationRE = new RegExp(knownOperations.join('|'));
+var knownOperationListRE = new RegExp('^(\\s*('+knownOperations.join('|')+')\\s*)(,\\s*('+knownOperations.join('|')+')\\s*)*$');
+var knownNodes = [];
+var knownNodeRE = null;
+var knownNodeListRE = null;
 
 // Auxiliary functions
 function stringBefore(str, delim) {
@@ -112,6 +124,64 @@ function init()
     // });
     // showElement('#varInfo', false);
     showElement('#varMenu', false);
+    initStopConditions();
+}
+
+var stopConditions = [];
+
+function initStopConditions() {
+    $("#jsGrid").jsGrid({
+        width: "100%",
+        height: "400px",
+     
+        filtering: true,
+        editing: true,
+        sorting: true,
+        paging: true,
+     
+        data: [],
+	noDataContent: '',
+	inserting: true,
+	editing: true,
+     
+	onItemInserted: function (args) {
+	    var grid = args.grid;
+	    var item = args.item;
+	    console.log('got %o', item);
+	    var functions = item['Function(s)'];
+	    var nodes = item['Node(s)'];
+	    var stopCondition = { enter: item['Enter'], exit: item['Exit']};
+	    if (functions == '*') {
+		stopCondition.functions = true;
+	    } else {
+		if (functions.match(knownOperationListRE)) {
+		    stopCondition.functions = functions.split(/\s*,\s*/);
+		} else {
+		    console.log('Illegal content in field Function(s)');
+		}
+	    }
+	    if (nodes == '*') {
+		stopCondition.nodes = true;
+	    } else {
+		if (nodes.match(knownNodeListRE)) {
+		    stopCondition.nodes = nodes.split(/\s*,\s*/);
+		} else {
+		    console.log('Illegal content in field Node(s)');
+		}
+	    }
+	    stopConditions.push(stopCondition);
+	    console.log('add stop condition %o', stopCondition);
+	},
+
+        fields: [
+            { name: 'Function(s)', type: 'text', width: 150 },
+            // { name: 'Direction(s)', type: 'select', items: [ { Name: 'Enter', Value: 'Enter'}, {Name: 'Exit', Value: 'Exit'} ], textField: 'Name', valueField: 'Value'},
+            { name: 'Enter', type: 'checkbox'},
+            { name: 'Exit', type: 'checkbox'},
+            { name: 'Node(s)', type: 'text', width: 200 },
+            { type: 'control' }
+        ]
+    });
 }
 
 function initWebSocket()
@@ -278,6 +348,12 @@ function processTrace(trace) {
 	var item = trace[j];
 	console.log('process trace item %o', item);
 	var node = item["node"];
+	if (node) {
+	    var nodeName = node.value;
+	    if (knownNodes.indexOf(nodeName) < 0) {
+		knownNodes.push(nodeName);
+	    }
+	}
 	var direction = item["direction"];
 	var op = item["function"];
 	var parms = item["parameters"];
@@ -306,6 +382,15 @@ function processTrace(trace) {
 	$('#traceOp' + j + ' .state').data('state', state);
 	$('#traceOp' + j + ' .state').data('delta', delta);
     }
+    knownNodeRE = new RegExp(knownNodes.join('|'));
+    knownNodeListRE = new RegExp('^(\\s*('+knownNodes.join('|')+')\\s*)(,\\s*('+knownNodes.join('|')+')\\s*)*$');
+    console.log('known nodes %o', knownNodes);
+    console.log('known node RE %o', knownNodeRE);
+    console.log('known node list RE %o', knownNodeListRE);
+    console.log('known operations %o', knownOperations);
+    console.log('known operation RE %o', knownOperationRE);
+    console.log('known operation list RE %o', knownOperationListRE);
+
     $('.call').click(function (e) {
 	var index = $(this).data('index');
 	console.log('click call %d, $(this) = %o, index = %o', e, index, $(this));
@@ -694,6 +779,10 @@ function moveToOp(n) {
     }
 }
 
+function isKnownOperation(operation) {
+    return knownOperations.indexOf(operation) >= 0;
+}
+
 function makeCurrentOp(n) {
     console.log('>>>> Make current op %d', n);
     if (currentOp != null) {
@@ -710,12 +799,7 @@ function makeCurrentOp(n) {
     // var operation = $('#traceOp' + n + ' span[class="function"]').html();
     // alert(operation);
     // console.log('operation %s', operation)
-    if (operation == "add-token" || operation == "add-alpha-token" || operation == "add-beta-token" ||
-	operation == "remove-token" || operation == "remove-alpha-token" || operation == "remove-beta-token" ||
-	operation == "token-store-put" || operation == "token-store-put-if-missing" || 
-	operation == "token-store-remove" || operation == "token-store-remove-if-exists" || operation == "token-store-clear" ||
-        operation == "index-put-token" || operation == "index-remove-token" ||
-        operation == "token-map-put" || operation == "token-map-remove") {
+    if (isKnownOperation(operation)) {
 	var node = $('#traceOp' + n + ' span[class="node"]').text().trim();
 	console.log('operation "%s" in node "%s"', operation, node);
 	if (currentNode && savedCss[currentNode]) {

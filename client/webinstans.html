@@ -5,14 +5,19 @@
 
 <title>WebSocket Test</title>
 
-<!-- <script language="javascript" type="text/javascript" src="viz.js"></script> -->
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css">
+<link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.4.1/jsgrid.min.css" />
+<link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.4.1/jsgrid-theme.min.css" />
+
 <link rel="stylesheet" href="webinstans.css">
-<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css">
-<!-- http://www.w3schools.com/icons/fontawesome_icons_video.asp-->
+
+<script language="javascript" type="text/javascript" src="https://code.jquery.com/jquery-1.10.2.js"></script>
+<script language="javascript" type="text/javascript" src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.4.1/jsgrid.min.js"></script>
+
 <script language="javascript" type="text/javascript" src="webinstans.js"></script>
-<script language="javascript" type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.js"></script>
-<script language="javascript" type="text/javascript" src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+
 <script language="javascript" type="text/javascript"> 
  $(document).ready(function() {  
    init();
@@ -21,10 +26,12 @@
 </head>
 <body>
 <h2>Web INSTANS</h2>
+
 <div id="tabs">
   <ul>
     <li><a href="#run-tab">Running INSTANS</a></li>
     <li><a href="#graph-tab">Graph</a></li>
+    <li><a href="#settings-tab">Settings</a></li>
     <li><a href="#log-tab">Log</a></li>
   </ul>
 
@@ -54,16 +61,19 @@
   <i id="stepForwardButton" class="fa fa-step-forward playerCommand" style="font-size:24px"></i>
   <i id="endButton" class="fa fa-fast-forward playerCommand" style="font-size:24px"></i>
 </div>
-<div id="stopConditions">
-Stop conditions
-</div>
 <div id="graph"></div>
-<div id="edgeTraverseInfo"></div>
+<!-- <div id="edgeTraverseInfo"></div> -->
+</div>
+
+<div id="settings-tab">
+  <h3>Stop conditions</h3>
+  <div id="jsGrid"></div>
 </div>
 
 <div id="log-tab">
   <h3>Log</h3>
   <div id="log"></div>
 </div>
+
 </div>
 </body>

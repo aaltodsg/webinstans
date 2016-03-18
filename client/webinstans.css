@@ -26,7 +26,7 @@
     /* overflow: auto; */
 }
 #stopConditions {
-    display: inline-block;
+    display: inline;
 }
 /* #commands { */
 /*     /\* border: 3px solid #666; *\/ */
