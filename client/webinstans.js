@@ -150,6 +150,7 @@ function initStopConditions() {
 	    console.log('got %o', item);
 	    var functions = item['Function(s)'];
 	    var nodes = item['Node(s)'];
+	    var content = item['Content'];
 	    var stopCondition = { enter: item['Enter'], exit: item['Exit']};
 	    if (functions == '*') {
 		stopCondition.functions = true;
@@ -169,6 +170,20 @@ function initStopConditions() {
 		    console.log('Illegal content in field Node(s)');
 		}
 	    }
+	    if (content) {
+/*
+  <content>         ::= <field-condition> {; <field-condition> }*
+  <field-condition> ::= <field-name>: <token-pattern>{,<token-pattern}*
+  <token-pattern>   ::= [(?var = <value-pattern>|checksum=<value-pattern>){, (?var = <value-pattern>|checksum=<value-pattern>)}]
+  <value-pattern>   ::= <sparql-value> or <sparql-value> that contains '*' characters that present wildcards.
+  <field-name>      ::= tokens | alpha-items | beta-items | solutions
+                     |  added-tokens | removed-tokens 
+                     |  added-alpha-items | removed-alpha-items
+                     |  added-beta-items | removed-beta-items 
+                     |  added-solutions | removed-solutions
+*/
+		console.log('content %o', content);
+	    }
 	    stopConditions.push(stopCondition);
 	    console.log('add stop condition %o', stopCondition);
 	},
@@ -179,9 +194,86 @@ function initStopConditions() {
             { name: 'Enter', type: 'checkbox'},
             { name: 'Exit', type: 'checkbox'},
             { name: 'Node(s)', type: 'text', width: 200 },
+	    { name: 'Content', type: 'text', width: 200 },
             { type: 'control' }
         ]
     });
+}
+
+// function contentParser(content) {
+//     var index = content.index;
+//     var chars = content.chars;
+//     var fieldNames = ['tokens', 'alpha-items', 'beta-items', 'solutions', 'added-tokens', 'removed-token', 'added-alpha-items', 'removed-alpha-items',
+// 		      'added-beta-items', 'removed-beta-items', 'added-solutions', 'removed-solutions'];
+
+//     var conditions = [];
+
+//     function parseContent() {
+// 	parseFieldCondition();
+// 	while (eatIfLookingAt(/\s*;\s*/)) {
+// 	    parseFieldCondition();
+// 	}
+//     }
+
+//     function parseFieldCondition() {
+// 	if (lookingAt(fieldNames)) {
+// 	    var field = eatPrevMatch(0);
+// 	    if (eatIfLookingAt(/\s*:\s*/)) {
+// 		parseTokenPatterns(field);
+// 	    } else {
+// 		parseError('Expecting ":" at ' + index + ' in ' + content.chars)
+// 	    }
+// 	} else {
+// 	    parseError('Expecting a field name at ' + index + ' in ' + content.chars);
+    
+// 	}
+//     }
+
+//     function parseTokenPatterns(field) {
+// 	var tps = [ parseTokenPattern() ];
+// 	while (eatIfLookingAt(/\s*,\s*/)) {
+// 	    tps.push(parseTokenPattern());
+// 	}
+// 	conditions.push({ field: field, tokenPatterns: tps});
+//     }
+
+//     function parseTokenPattern() {
+// 	if (eatIfLookingAt(/[/)) {
+// 	    var cl = [parseConstraint()];
+// 	    while (eatIfLookingAt(/\s*,\s*/)) {
+// 		cl.push(parseConstraint())
+// 	    }
+// 	    if (eatIfLookingAt(/]/)) {
+// 		return { constraints: cl }
+// 	    } else {
+// 		parseError('Expecting "]" at ' + index + ' in ' + content.chars);
+// 	    }
+// 	} else {
+// 	    parseError('Expecting "[" at ' + index + ' in ' + content.chars);
+// 	}
+//     }
+
+//     function parseConstraint() {
+// 	if (eatIfLookingAt(/checksum/)) {
+// 	    var valuePattern = parseValuePattern();
+// 	    return { type: checksum, constraint: valuePattern }
+// 	} else {
+// 	    if (lookingAt(/\s*?([a-zA-Z0-9_]+)\s*/)) {
+// 		var v = eatPrevMatch(1);
+// 		var valuePattern = parseValuePattern();
+// 		return { type: variable, variable: v, valuePattern: valuePattern}
+// 	    } else {
+// 		parseError('Expecting "checksum" or a variable at ' + index + ' of ' + content.chars);
+// 	    }
+// 	}
+//     }
+
+// }
+
+function contentLexer(content) {
+    var index = content.index;
+    var chars = content.chars;
+    
 }
 
 function initWebSocket()
