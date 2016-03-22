@@ -1,0 +1,45 @@
+<content>         ::= <field-condition> {; <field-condition> }*
+<field-condition> ::= <field-name>: <token-pattern>{,<token-pattern}*
+<token-pattern>   ::= [(?var = <value-pattern>|checksum=<value-pattern>){, (?var = <value-pattern>|checksum=<value-pattern>)}]
+<value-pattern>   ::= <sparql-value> or <sparql-value> that contains '*' characters that present wildcards.
+<field-name>      ::= tokens | alpha-items | beta-items | solutions
+		   |  added-tokens | removed-tokens 
+		   |  added-alpha-items | removed-alpha-items
+		   |  added-beta-items | removed-beta-items 
+		   |  added-solutions | removed-solutions
+<value-pattern>   ::= true | false | decimal | float | double | string-wild | dateTime | iri-wild | literal | blank-node | unbound | wildcard
+
+literal           ::= string-wild'^^'iri-wild | string-wild'@'string-wild
+dateTime          ::= literal
+wildcard          ::= '*'
+string-wild       ::= js-string, '*' used as wildcard, escape with \ if needed
+iri-wild          ::= iri, use '*' used as wildcard, escape with \ if needed
+
+
+string-wild       ::= JS StringLiteral, allow only \ CharacterEscapeSequence
+
+StringLiteral           ::= " DoubleStringCharactersopt "
+                         | ' SingleStringCharactersopt '
+DoubleStringCharacters  ::= DoubleStringCharacter DoubleStringCharactersopt
+SingleStringCharacters  ::= SingleStringCharacter SingleStringCharactersopt
+DoubleStringCharacter   ::= SourceCharacter but not one of " or \ or LineTerminator
+                         |  \ EscapeSequence
+                         |  LineContinuation
+SingleStringCharacter   ::= SourceCharacter but not one of ' or \ or LineTerminator
+                         |  \ EscapeSequence
+                         |  LineContinuation
+LineContinuation        ::= \ LineTerminatorSequence
+EscapeSequence          ::= CharacterEscapeSequence
+                         |  0 [lookahead ∉ DecimalDigit]
+                         |  HexEscapeSequence
+                         |  UnicodeEscapeSequence
+CharacterEscapeSequence ::= SingleEscapeCharacter
+                         |  NonEscapeCharacter
+SingleEscapeCharacter   ::= one of ' " \ b f n r t v
+NonEscapeCharacter      ::= SourceCharacter but not one of EscapeCharacter or LineTerminator
+EscapeCharacter         ::= SingleEscapeCharacter
+                         |  DecimalDigit
+                         |  x
+                         |  u
+HexEscapeSequence       ::= x HexDigit HexDigit
+UnicodeEscapeSequence   ::= u HexDigit HexDigit HexDigit HexDigit

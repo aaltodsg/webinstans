@@ -255,25 +255,159 @@ function initStopConditions() {
 
 //     function parseConstraint() {
 // 	if (eatIfLookingAt(/checksum/)) {
-// 	    var valuePattern = parseValuePattern();
-// 	    return { type: checksum, constraint: valuePattern }
+// 	    if (lookingAt(tokenValueRelation[])) {
+// 		var rel = eatPrevMatch(0);
+// 		var valuePattern = parseValuePattern();
+// 		return { type: 'checksum', relation: rel, valuePattern: valuePattern}
+// 	    } else {
+// 		parseError('Expecting a relational operator at ' + index + ' of ' + content.chars);
+// 	    }
 // 	} else {
 // 	    if (lookingAt(/\s*?([a-zA-Z0-9_]+)\s*/)) {
 // 		var v = eatPrevMatch(1);
-// 		var valuePattern = parseValuePattern();
-// 		return { type: variable, variable: v, valuePattern: valuePattern}
+// 		if (lookingAt(tokenValueRelation[])) {
+// 		    var rel = eatPrevMatch(0);
+// 		    var valuePattern = parseValuePattern();
+// 		    return { type: 'variable', variable: v, relation: rel, valuePattern: valuePattern}
+// 		} else {
+// 		    parseError('Expecting a relational operator at ' + index + ' of ' + content.chars);
+// 		}
 // 	    } else {
 // 		parseError('Expecting "checksum" or a variable at ' + index + ' of ' + content.chars);
 // 	    }
 // 	}
 //     }
 
+//     function parseValuePattern() {
+	
+//     }
 // }
 
+// function parseJSStringWild(content) {
+//     var ch;
+//     if (content.string.length < 1) {
+// 	throw 'Unexpected empty string at ' + content.index + ' in ' + content.string;
+//     } else {
+// 	chars = [];
+// 	wildcards = [];
+// 	var ch;
+// 	while (content.index < content.string.length) {
+// 	    if ((ch = content.string.charAt(content.index++)) == '\\') {
+// 		if (content.index < content.string.length) {
+// 		    chars.push(content.string.charAt(content.index++));
+// 		} else {
+// 		    chars.push(ch);
+// 		}
+// 	    } else {
+// 		if (ch == '*') {
+// 		    wildcards.push(content.index-1);
+// 		}
+// 		chars.push(ch);
+// 	    }
+// 	}
+// 	return { string: chars.join(separator=''), wildcards: wildcards }
+//     }
+// }
+
+function parseStringOrIriWild(content) {
+    var delimiter, containsWildcards;
+
+    function eatHex() {
+	var ch = content.string.charAt(content.index++);
+	if (ch.match(/[0-9a-zA-Z]/)) {
+	    return parseInt(ch);
+	} else {
+	    throw "Expecting a hex char instead of '" + ch + ' at ' + content.index + ' in ' + content.string;
+	}
+    }
+
+    function eatUnicodeSequence() {
+	chars.push(String.fromCharCode(eatHex()*0x1000 + eatHex()*0x100 + eatHex()*0x10 + eatHex()));
+    }
+
+    function eatHexSequence() {
+	chars.push(String.fromCharCode(eatHex()*0x10 + eatHex()));
+    }
+
+    function eatEscapeSequence() {
+	content.index++;
+	switch (content.string.charAt(content.index++)) {
+	case "b":
+	    chars.push('\b');
+	    break;
+	case "f":
+	    chars.push('\f');
+	    break;
+	case "n":
+	    chars.push('\n');
+	    break;
+	case "r":
+	    chars.push('\r');
+	    break;
+	case "t":
+	    chars.push('\t');
+	    break;
+	case "v":
+	    chars.push('\v');
+	    break;
+	case "u":
+	    eatUnicodeSequence();
+	    break;
+	case "x":
+	    eatHexSequence();
+	    break;
+	default:
+	    chars.push(ch);
+	    break;
+	}
+    }
+
+    var ch;
+    if (content.string.length < 2) {
+	throw "Illegal string literal at " + content.index + ' in ' + content.string;
+    } else if ((ch = content.string.charAt(content.index)) == '"' || ch == "'" || ch == '<') {
+	if (ch == '<') {
+	    delimiter = '>';
+	} else {
+	    delimiter = content.string.charAt(content.index);
+	}
+	chars = [];
+	content.index++;
+	wildcards = [];
+	while ((ch = content.string.charAt(content.index++)) != delimiter) {
+	    if (ch == '\\') {
+		eatEscapeSequence();
+	    } else {
+		if (ch == '*') {
+		    wildcards.push(content.index-1);
+		}
+		chars.push(ch);
+	    }
+	}
+	return { string: chars.join(separator=''), wildcards: wildcards, type: (delimiter == '>' ? 'iri' : 'string') }
+    } else {
+	throw "Expecting ' or \" at " + content.index + ' in ' + content.string;
+    }
+}
+
+// What about blank nodes?
 function contentLexer(content) {
-    var index = content.index;
-    var chars = content.chars;
-    
+    var ch;
+    if (content.string.length == 0) {
+	return null;
+    } else if (content.string.startsWith('*')) {
+	content.index++;
+	return {type: 'wildcard'};
+    } else if (content.string.match(/^((unbound)(?=\s)|(unbound)$)/i)) {
+	content.index += 7;
+	return { type: 'unbound' }„
+    } else if ((ch = content.string.charAt(content.index)) == '<' || ch == '"' || ch == "'") {
+	return parseStringOrIriWild(content);
+    } else if (ch.match(/^[0-9]/)) {
+	return parseNumber(content);
+    } else {
+	throw "Illegal token at " + content.index + ' in ' + content.string;
+    }
 }
 
 function initWebSocket()
