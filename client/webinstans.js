@@ -390,23 +390,49 @@ function parseStringOrIriWild(content) {
     }
 }
 
+function contentSubstr(content) {
+    return content.string.substring(content.index);
+}
+
 // What about blank nodes?
 function contentLexer(content) {
     var ch;
     if (content.string.length == 0) {
 	return null;
-    } else if (content.string.startsWith('*')) {
+    } else if (contentSubstr(content).startsWith('*')) {
 	content.index++;
 	return {type: 'wildcard'};
-    } else if (content.string.match(/^((unbound)(?=\s)|(unbound)$)/i)) {
+    } else if (contentSubstr(content).match(/^((unbound)(?=\s)|(unbound)$)/i)) {
 	content.index += 7;
-	return { type: 'unbound' }„
+	return { type: 'unbound' };
     } else if ((ch = content.string.charAt(content.index)) == '<' || ch == '"' || ch == "'") {
 	return parseStringOrIriWild(content);
     } else if (ch.match(/^[0-9]/)) {
 	return parseNumber(content);
     } else {
 	throw "Illegal token at " + content.index + ' in ' + content.string;
+    }
+}
+
+function parseNumber(content) {
+    var m;
+    if (m = contentSubstr(content).match(/^[-]?(0|[1-9][0-9]*)\.[0-9]*([eE][+-]?[0-9]+)?((?=\s)|$)/)) {
+	content.index += m[0].length;
+	return parseFloat(m[0]);
+    } else if (m = contentSubstr(content).match(/^[-]?\.[0-9]+([eE][+-]?[0-9]+)?((?=\s)|$)/)) {
+	content.index += m[0].length;
+	return parseFloat(m[0]);
+    } else if (m = contentSubstr(content).match(/^(0|[1-9][0-9]*)([eE][+-]?[0-9]+)((?=\s)|$)/)) {
+	content.index += m[0].length;
+	return parseFloat(m[0]);
+    } else if (m = contentSubstr(content).match(/^[+-]?(0|[1-9][0-9]*)((?=\s)|$)/)) {
+	content.index += m[0].length;
+	return parseInt(m[0]);
+    } else if (m = contentSubstr(content).match(/^[0-9a-fA-F]+((?=\s)|$)/)) {
+	content.index += m[0].length;
+	return parseInt(m[0], 16);
+    } else {
+	throw "Cannot parse a number at " + content.index + ' in ' + content.string;
     }
 }
 
