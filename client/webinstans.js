@@ -11,25 +11,25 @@ var currentOp = null;
 var parsedTrace = null;
 var traceLevel = 0;
 var traceLevelIndent = 2;
-var definingNodes = new Object();
-var usingNodes = new Object();
+var definingNodes = {};
+var usingNodes = {};
 var prevNode = 'missing';
 var prevOperation = 'missing';
 var prevToken = 'missing';
-var edgeTraverseInfo = new Object();
+var edgeTraverseInfo = {};
 var ignoreChecksums = true;
 var trackCounter = 0;
 var trackEnterOps = [];
 var opTrackMapping = [];
-var varNumericToSymbolicMapping = new Object();
-var varSymbolicToNumericMapping = new Object();
+var varNumericToSymbolicMapping = {};
+var varSymbolicToNumericMapping = {};
 var tokenStores = {};
 var nodeState = {};
-var knownOperations = ["add-token", "add-alpha-token", "add-beta-token" ||
-		       "remove-token", "remove-alpha-token", "remove-beta-token" ||
+var knownOperations = ["add-token", "add-alpha-token", "add-beta-token",
+		       "remove-token", "remove-alpha-token", "remove-beta-token",
 		       "token-store-put", "token-store-put-if-missing", 
-		       "token-store-remove", "token-store-remove-if-exists", "token-store-clear" ||
-		       "index-put-token", "index-remove-token" ||
+		       "token-store-remove", "token-store-remove-if-exists", "token-store-clear",
+		       "index-put-token", "index-remove-token",
 		       "token-map-put", "token-map-remove"];
 
 var knownOperationRE = new RegExp(knownOperations.join('|'));
@@ -47,84 +47,312 @@ function stringAfter(str, delim) {
     return str.substring(str.indexOf(delim)+delim.length);
 }
 
-function init()
-{
-    $('#tabs').tabs();
-    log = document.getElementById("log");
-    // $(document).click(function (e) {
-    // 	console.log('click %o', e);
-    // });
-    
-    // $(function() {
-    // 	$( "#runContainer" ).accordion({
-    // 	    collapsible: true,
-    // 	    active: false
-    // 	});
-    // }); 
-    // $(function() {
-    // 	$( "#logContainer" ).accordion({
-    // 	    collapsible: true,
-    // 	    active: false
-    // 	});
-    // }); 
-    // $(function() {
-    // 	$( "#varContainer" ).accordion({
-    // 	    collapsible: true,
-    // 	    active: false
-    // 	});
-    // }); 
-    initWebSocket();
-    $('#rewindButton').click(function() {
-	moveToOp(0);
-    });
-    $('#stepBackButton').click(function() {
-	if (currentOp) {
-	    moveToOp(currentOp - 1);
+function contentParser(content) {
+    var conditions = [];
+
+    var input;
+    var index;
+    var fieldNames;
+    var fieldNameRE;
+    var tokenValueRelations;
+    var tokenValueRelationRE;
+
+    function initializeParsing(content) {
+	input = content.string;
+	index = content.index;
+	fieldNames = ['tokens', 'alpha-items', 'beta-items', 'solutions', 'added-tokens', 'removed-token', 'added-alpha-items', 'removed-alpha-items',
+		      'added-beta-items', 'removed-beta-items', 'added-solutions', 'removed-solutions'];
+	fieldNameRE = fieldNames.join('|');
+	tokenValueRelations = ['==', '!=', '>', '<', '>=', '<='];
+	tokenValueRelationRE = tokenValueRelations.join('|');
+    }
+
+    // Auxiliary functions
+
+    function parseError(msg) {
+	throw msg + ' at position ' + index + ' in ' + input;
+    }
+
+    function lookingAt(re) {
+	var match = input.substring(index).match(re);
+	if (match && match.index == 0) {
+	    return match;
 	}
-    });
-    $('#stopButton').click(function() {
-    });
-    $('#playButton').click(function() {
-    });
-    $('#pauseButton').click(function() {
-    });
-    $('#stepForwardButton').click(function() {
-	if (currentOp < $('#ops div').length - 1) {
-	    moveToOp(currentOp + 1);
+	return null;
+    }
+
+    function eatIfLookingAt(re) {
+	var match = lookingAt(re);
+	if (match) {
+	    index += match[0].length;
 	}
-    });
-    $('#endButton').click(function() {
-	moveToOp($('#ops div').length - 1);
-    });
-    $('#initializeInstans').click(function() {
-	launchInstans();
-    });  
-    // $('#getDot').click(function() {
-    // 	getDot();
-    // }); 
-    $('#runInstans').click(function() {
-	runInstans();
-    });
-    // $( "#varPopupMenuDialog" ).dialog({
-    // 	dialogClass: "no-close",
-    // 	autoOpen: false,
-    // 	show: {
-    //         effect: "blind",
-    //         duration: 1000
-    // 	},
-    // 	hide: {
-    //         effect: "explode",
-    //         duration: 1000
-    // 	}
-    // });
-    // $( "#varPopupMenu" ).menu();
-    // $( document ).tooltip();
-    // $( document ).tooltip({
-    // 	items: '*:not(.ui-dialog-titlebar-close)'
-    // });
-    // showElement('#varInfo', false);
-    showElement('#varMenu', false);
-    initStopConditions();
+	return match;
+    }
+
+    function expect(re, msg) {
+	var match = eatIfLookingAt(re);
+	if (match) {
+	    return match;
+	}
+	parseError(msg);
+    }
+
+    // Parse functions
+
+    function parseStringOrIriWild(start) {
+	var chars = [];
+
+	function eatHex() {
+	    return parseInt(expect(/[0-9a-zA-Z]/, 'Expecting a hex char')[0], 10);
+	}
+
+	function eatUnicodeSequence() {
+	    chars.push(String.fromCharCode(eatHex()*0x1000 + eatHex()*0x100 + eatHex()*0x10 + eatHex()));
+	}
+
+	function eatHexSequence() {
+	    chars.push(String.fromCharCode(eatHex()*0x10 + eatHex()));
+	}
+
+	function eatEscapeSequence() {
+	    index++;
+	    var ch = input.charAt(index++);
+	    switch (ch) {
+	    case "b":
+		chars.push('\b');
+		break;
+	    case "f":
+		chars.push('\f');
+		break;
+	    case "n":
+		chars.push('\n');
+		break;
+	    case "r":
+		chars.push('\r');
+		break;
+	    case "t":
+		chars.push('\t');
+		break;
+	    case "v":
+		chars.push('\v');
+		break;
+	    case "u":
+		eatUnicodeSequence();
+		break;
+	    case "x":
+		eatHexSequence();
+		break;
+	    default:
+		chars.push(ch);
+		break;
+	    }
+	}
+
+
+	var stop = (start == '<' ? '>' : start);
+	var wildcards = [];
+	index++;
+	var ch;
+	while (index < input.length) {
+	    ch = input.charAt(index);
+	    if (ch == stop) {
+		return { string: chars.join(''), wildcards: wildcards, type: (stop == '>' ? 'iri' : 'string') };
+	    }
+	    if (ch == '\\') {
+		eatEscapeSequence();
+	    } else {
+		if (ch == '*') {
+		    wildcards.push(index-1);
+		}
+		chars.push(ch);
+	    }
+	}
+	parseError('Unexpected end of string or iri');
+    }
+
+    function parseNumber() {
+	var m = eatIfLookingAt('[-]?(0|[1-9][0-9]*)\\.[0-9]*([eE][+-]?[0-9]+)?((?=\\s)|$)');
+	if (m) {
+	    return parseFloat(m[0]);
+	}
+	m = eatIfLookingAt('[-]?\\.[0-9]+([eE][+-]?[0-9]+)?((?=\\s)|$)');
+	if (m) {
+	    return parseFloat(m[0]);
+	}
+	m = eatIfLookingAt('(0|[1-9][0-9]*)([eE][+-]?[0-9]+)((?=\\s)|$)');
+	if (m) {
+	    return parseFloat(m[0]);
+	}
+	m = eatIfLookingAt('[+-]?(0|[1-9][0-9]*)((?=\\s)|$)/');
+	if (m) {
+	    return parseInt(m[0], 10);
+	}
+	m = eatIfLookingAt('[0-9a-fA-F]+((?=\\s)|$)');
+	if (m) {
+	    return parseInt(m[0], 16);
+	}
+	parseError("Cannot parse a number at ");
+    }
+
+    function parseValuePattern() {
+	if (input.length == 0) {
+	    return null;
+	}
+	if (eatIfLookingAt(/\*/)) {
+	    return {type: 'wildcard'};
+	}
+	if (eatIfLookingAt(/((unbound)(?=\s)|(unbound)$)/i)) {
+	    return { type: 'unbound' };
+	}
+	var match = eatIfLookingAt(/[<'"]/);
+	if (match) {
+	    return parseStringOrIriWild(match[0]);
+	}
+	return parseNumber();
+    }
+
+    function parseConstraint() {
+	var match, rel, valuePattern;
+	if (eatIfLookingAt(/checksum/)) {
+	    match = expect(tokenValueRelationRE, 'Expecting a relational operator');
+	    rel = match[0];
+	    valuePattern = parseValuePattern();
+	    return { type: 'checksum', relation: rel, valuePattern: valuePattern};
+	}
+	match = expect(/\s*?([a-zA-Z0-9_]+)\s*/, 'Expecting "checksum" or a variable');
+	var v = match[1];
+	match = eatIfLookingAt(tokenValueRelationRE, 'Expecting a relational operator');
+	rel = match[0];
+	valuePattern = parseValuePattern();
+	return { type: 'variable', variable: v, relation: rel, valuePattern: valuePattern};
+    }
+
+    function parseTokenPattern() {
+	expect(/\[/, 'Expecting "["');
+	var cl = [parseConstraint()];
+	while (eatIfLookingAt(/\s*,\s*/)) {
+	    cl.push(parseConstraint());
+	}
+	expect(/\]/, 'Expecting "]"');
+    }
+
+    function parseTokenPatterns(field) {
+	var tps = [ parseTokenPattern() ];
+	while (eatIfLookingAt(/\s*,\s*/)) {
+	    tps.push(parseTokenPattern());
+	}
+	conditions.push({ field: field, tokenPatterns: tps});
+    }
+
+    function parseFieldCondition() {
+	var match = expect(fieldNameRE, 'Expecting a field name');
+	var field = match[0];
+	expect(/\s*:\s*/, 'Expecting ":"');
+	parseTokenPatterns(field);
+    }
+
+    function parseContent(content) {
+	initializeParsing(content);
+	parseFieldCondition();
+	while (eatIfLookingAt(/\s*;\s*/)) {
+	    parseFieldCondition();
+	}
+    }
+
+    function testParseError() {
+	console.log('testParseError');
+	var msg = 'TestParserError';
+	try {
+	    parseError(msg);
+	    throw 'parseError did not throw!';
+	} catch (e) {
+	    console.log('Got %o. OK', e);
+	}
+    }
+
+    function testLookingAt() {
+	console.log('testLookingAt');
+	initializeParsing({ string: 'abbabaa', index: 0 });
+	var match = lookingAt('abba');
+	if (match) {
+	    console.log('lookingAt("abba") at index = %o returned %o', index, match);
+	    match = lookingAt('abba');
+	    if (match) {
+		console.log('lookingAt("baa") at index = %o returned %o', index, match);
+		match = lookingAt('baba');
+		if (match) {
+		    throw 'lookingAt("baba") at index ' + index + ' unexpectedly returned ' + match;
+		}
+		console.log('lookingAt("baba") at index = %o returned %o', index, match);
+	    } else {
+		throw 'lookingAt("baa") failed for ' + content;
+	    }
+	} else {
+	    throw 'lookingAt("abba") failed for ' + content;
+	}
+    }
+
+    function testEatIfLookingAt() {
+	console.log('testEatIfLookingAt');
+    }
+
+    function testExpect() {
+	console.log('testExpect');
+    }
+
+    function testParseStringOrIriWild() {
+	console.log('testParseStringOrIriWild');
+    }
+
+    function testParseNumber() {
+	console.log('testParseNumber');
+    }
+
+    function testParseValuePattern() {
+	console.log('testParseValuePattern');
+    }
+
+    function testParseConstraint() {
+	console.log('testParseConstraint');
+    }
+
+    function testParseTokenPattern() {
+	console.log('testParseTokenPattern');
+    }
+
+    function testParseTokenPatterns() {
+	console.log('testParseTokenPatterns');
+    }
+
+    function testParseFieldCondition() {
+	console.log('testParseFieldCondition');
+    }
+
+    function testParseContent() {
+	console.log('testParseContent');
+    }
+
+    function testParseFunctions() {
+	console.log('testParseFunctions');
+	testParseError();
+	testLookingAt();
+	testEatIfLookingAt();
+	testExpect();
+	testParseStringOrIriWild();
+	testParseNumber();
+	testParseValuePattern();
+	testParseConstraint();
+	testParseTokenPattern();
+	testParseTokenPatterns();
+	testParseFieldCondition();
+	testParseContent();
+    }
+
+    testParseFunctions();
+    // parseContent(content);
+    // expect(/\s*$/, 'Extraneus characters');
+    // content.index = index;
+    return conditions;
 }
 
 var stopConditions = [];
@@ -142,7 +370,6 @@ function initStopConditions() {
         data: [],
 	noDataContent: '',
 	inserting: true,
-	editing: true,
      
 	onItemInserted: function (args) {
 	    var grid = args.grid;
@@ -183,6 +410,7 @@ function initStopConditions() {
                      |  added-solutions | removed-solutions
 */
 		console.log('content %o', content);
+		stopCondition.content = contentParser(content);
 	    }
 	    stopConditions.push(stopCondition);
 	    console.log('add stop condition %o', stopCondition);
@@ -199,89 +427,6 @@ function initStopConditions() {
         ]
     });
 }
-
-// function contentParser(content) {
-//     var index = content.index;
-//     var chars = content.chars;
-//     var fieldNames = ['tokens', 'alpha-items', 'beta-items', 'solutions', 'added-tokens', 'removed-token', 'added-alpha-items', 'removed-alpha-items',
-// 		      'added-beta-items', 'removed-beta-items', 'added-solutions', 'removed-solutions'];
-
-//     var conditions = [];
-
-//     function parseContent() {
-// 	parseFieldCondition();
-// 	while (eatIfLookingAt(/\s*;\s*/)) {
-// 	    parseFieldCondition();
-// 	}
-//     }
-
-//     function parseFieldCondition() {
-// 	if (lookingAt(fieldNames)) {
-// 	    var field = eatPrevMatch(0);
-// 	    if (eatIfLookingAt(/\s*:\s*/)) {
-// 		parseTokenPatterns(field);
-// 	    } else {
-// 		parseError('Expecting ":" at ' + index + ' in ' + content.chars)
-// 	    }
-// 	} else {
-// 	    parseError('Expecting a field name at ' + index + ' in ' + content.chars);
-    
-// 	}
-//     }
-
-//     function parseTokenPatterns(field) {
-// 	var tps = [ parseTokenPattern() ];
-// 	while (eatIfLookingAt(/\s*,\s*/)) {
-// 	    tps.push(parseTokenPattern());
-// 	}
-// 	conditions.push({ field: field, tokenPatterns: tps});
-//     }
-
-//     function parseTokenPattern() {
-// 	if (eatIfLookingAt(/[/)) {
-// 	    var cl = [parseConstraint()];
-// 	    while (eatIfLookingAt(/\s*,\s*/)) {
-// 		cl.push(parseConstraint())
-// 	    }
-// 	    if (eatIfLookingAt(/]/)) {
-// 		return { constraints: cl }
-// 	    } else {
-// 		parseError('Expecting "]" at ' + index + ' in ' + content.chars);
-// 	    }
-// 	} else {
-// 	    parseError('Expecting "[" at ' + index + ' in ' + content.chars);
-// 	}
-//     }
-
-//     function parseConstraint() {
-// 	if (eatIfLookingAt(/checksum/)) {
-// 	    if (lookingAt(tokenValueRelation[])) {
-// 		var rel = eatPrevMatch(0);
-// 		var valuePattern = parseValuePattern();
-// 		return { type: 'checksum', relation: rel, valuePattern: valuePattern}
-// 	    } else {
-// 		parseError('Expecting a relational operator at ' + index + ' of ' + content.chars);
-// 	    }
-// 	} else {
-// 	    if (lookingAt(/\s*?([a-zA-Z0-9_]+)\s*/)) {
-// 		var v = eatPrevMatch(1);
-// 		if (lookingAt(tokenValueRelation[])) {
-// 		    var rel = eatPrevMatch(0);
-// 		    var valuePattern = parseValuePattern();
-// 		    return { type: 'variable', variable: v, relation: rel, valuePattern: valuePattern}
-// 		} else {
-// 		    parseError('Expecting a relational operator at ' + index + ' of ' + content.chars);
-// 		}
-// 	    } else {
-// 		parseError('Expecting "checksum" or a variable at ' + index + ' of ' + content.chars);
-// 	    }
-// 	}
-//     }
-
-//     function parseValuePattern() {
-	
-//     }
-// }
 
 // function parseJSStringWild(content) {
 //     var ch;
@@ -309,133 +454,7 @@ function initStopConditions() {
 //     }
 // }
 
-function parseStringOrIriWild(content) {
-    var delimiter, containsWildcards;
-
-    function eatHex() {
-	var ch = content.string.charAt(content.index++);
-	if (ch.match(/[0-9a-zA-Z]/)) {
-	    return parseInt(ch);
-	} else {
-	    throw "Expecting a hex char instead of '" + ch + ' at ' + content.index + ' in ' + content.string;
-	}
-    }
-
-    function eatUnicodeSequence() {
-	chars.push(String.fromCharCode(eatHex()*0x1000 + eatHex()*0x100 + eatHex()*0x10 + eatHex()));
-    }
-
-    function eatHexSequence() {
-	chars.push(String.fromCharCode(eatHex()*0x10 + eatHex()));
-    }
-
-    function eatEscapeSequence() {
-	content.index++;
-	switch (content.string.charAt(content.index++)) {
-	case "b":
-	    chars.push('\b');
-	    break;
-	case "f":
-	    chars.push('\f');
-	    break;
-	case "n":
-	    chars.push('\n');
-	    break;
-	case "r":
-	    chars.push('\r');
-	    break;
-	case "t":
-	    chars.push('\t');
-	    break;
-	case "v":
-	    chars.push('\v');
-	    break;
-	case "u":
-	    eatUnicodeSequence();
-	    break;
-	case "x":
-	    eatHexSequence();
-	    break;
-	default:
-	    chars.push(ch);
-	    break;
-	}
-    }
-
-    var ch;
-    if (content.string.length < 2) {
-	throw "Illegal string literal at " + content.index + ' in ' + content.string;
-    } else if ((ch = content.string.charAt(content.index)) == '"' || ch == "'" || ch == '<') {
-	if (ch == '<') {
-	    delimiter = '>';
-	} else {
-	    delimiter = content.string.charAt(content.index);
-	}
-	chars = [];
-	content.index++;
-	wildcards = [];
-	while ((ch = content.string.charAt(content.index++)) != delimiter) {
-	    if (ch == '\\') {
-		eatEscapeSequence();
-	    } else {
-		if (ch == '*') {
-		    wildcards.push(content.index-1);
-		}
-		chars.push(ch);
-	    }
-	}
-	return { string: chars.join(separator=''), wildcards: wildcards, type: (delimiter == '>' ? 'iri' : 'string') }
-    } else {
-	throw "Expecting ' or \" at " + content.index + ' in ' + content.string;
-    }
-}
-
-function contentSubstr(content) {
-    return content.string.substring(content.index);
-}
-
 // What about blank nodes?
-function contentLexer(content) {
-    var ch;
-    if (content.string.length == 0) {
-	return null;
-    } else if (contentSubstr(content).startsWith('*')) {
-	content.index++;
-	return {type: 'wildcard'};
-    } else if (contentSubstr(content).match(/^((unbound)(?=\s)|(unbound)$)/i)) {
-	content.index += 7;
-	return { type: 'unbound' };
-    } else if ((ch = content.string.charAt(content.index)) == '<' || ch == '"' || ch == "'") {
-	return parseStringOrIriWild(content);
-    } else if (ch.match(/^[0-9]/)) {
-	return parseNumber(content);
-    } else {
-	throw "Illegal token at " + content.index + ' in ' + content.string;
-    }
-}
-
-function parseNumber(content) {
-    var m;
-    if (m = contentSubstr(content).match(/^[-]?(0|[1-9][0-9]*)\.[0-9]*([eE][+-]?[0-9]+)?((?=\s)|$)/)) {
-	content.index += m[0].length;
-	return parseFloat(m[0]);
-    } else if (m = contentSubstr(content).match(/^[-]?\.[0-9]+([eE][+-]?[0-9]+)?((?=\s)|$)/)) {
-	content.index += m[0].length;
-	return parseFloat(m[0]);
-    } else if (m = contentSubstr(content).match(/^(0|[1-9][0-9]*)([eE][+-]?[0-9]+)((?=\s)|$)/)) {
-	content.index += m[0].length;
-	return parseFloat(m[0]);
-    } else if (m = contentSubstr(content).match(/^[+-]?(0|[1-9][0-9]*)((?=\s)|$)/)) {
-	content.index += m[0].length;
-	return parseInt(m[0]);
-    } else if (m = contentSubstr(content).match(/^[0-9a-fA-F]+((?=\s)|$)/)) {
-	content.index += m[0].length;
-	return parseInt(m[0], 16);
-    } else {
-	throw "Cannot parse a number at " + content.index + ' in ' + content.string;
-    }
-}
-
 function initWebSocket()
 {
     websocket = new WebSocket(wsUri);
@@ -795,7 +814,7 @@ function findNodeTraceItem(nodeName, startingFrom, forward) {
 
 function getOrInitialize(map, key) {
     if (!map.hasOwnProperty(key)) {
-	map[key] = new Object();
+	map[key] = {};
     }
     // alert('getOrInitialize ' + key);
     return map[key];
@@ -1232,4 +1251,84 @@ function runInstans()
 
 function getDot() {
     websocket.send('dot');
+}
+
+function init()
+{
+    $('#tabs').tabs();
+    log = document.getElementById("log");
+    // $(document).click(function (e) {
+    // 	console.log('click %o', e);
+    // });
+    
+    // $(function() {
+    // 	$( "#runContainer" ).accordion({
+    // 	    collapsible: true,
+    // 	    active: false
+    // 	});
+    // }); 
+    // $(function() {
+    // 	$( "#logContainer" ).accordion({
+    // 	    collapsible: true,
+    // 	    active: false
+    // 	});
+    // }); 
+    // $(function() {
+    // 	$( "#varContainer" ).accordion({
+    // 	    collapsible: true,
+    // 	    active: false
+    // 	});
+    // }); 
+    initWebSocket();
+    $('#rewindButton').click(function() {
+	moveToOp(0);
+    });
+    $('#stepBackButton').click(function() {
+	if (currentOp) {
+	    moveToOp(currentOp - 1);
+	}
+    });
+    $('#stopButton').click(function() {
+    });
+    $('#playButton').click(function() {
+    });
+    $('#pauseButton').click(function() {
+    });
+    $('#stepForwardButton').click(function() {
+	if (currentOp < $('#ops div').length - 1) {
+	    moveToOp(currentOp + 1);
+	}
+    });
+    $('#endButton').click(function() {
+	moveToOp($('#ops div').length - 1);
+    });
+    $('#initializeInstans').click(function() {
+	launchInstans();
+    });  
+    // $('#getDot').click(function() {
+    // 	getDot();
+    // }); 
+    $('#runInstans').click(function() {
+	runInstans();
+    });
+    // $( "#varPopupMenuDialog" ).dialog({
+    // 	dialogClass: "no-close",
+    // 	autoOpen: false,
+    // 	show: {
+    //         effect: "blind",
+    //         duration: 1000
+    // 	},
+    // 	hide: {
+    //         effect: "explode",
+    //         duration: 1000
+    // 	}
+    // });
+    // $( "#varPopupMenu" ).menu();
+    // $( document ).tooltip();
+    // $( document ).tooltip({
+    // 	items: '*:not(.ui-dialog-titlebar-close)'
+    // });
+    // showElement('#varInfo', false);
+    showElement('#varMenu', false);
+    initStopConditions();
 }
