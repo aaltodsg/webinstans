@@ -99,7 +99,7 @@ function contentParser(content) {
 
     // Parse functions
 
-    function parseStringOrIriWild(start) {
+    function parseStringOrIriWild() {
 	var chars = [];
 
 	function eatHex() {
@@ -149,12 +149,20 @@ function contentParser(content) {
 	}
 
 
-	var stop = (start == '<' ? '>' : start);
+	var start = input.charAt(index);
+	var stop;
+	if (start == '<') {
+	    stop = '>';
+	} else if (start == '"' || start == "'") {
+	    stop = start;
+	} else {
+	    parseError('Illegal start of a string or iri literal ' + start);
+	}
 	var wildcards = [];
 	index++;
 	var ch;
 	while (index < input.length) {
-	    ch = input.charAt(index);
+	    ch = input.charAt(index++);
 	    if (ch == stop) {
 		return { string: chars.join(''), wildcards: wildcards, type: (stop == '>' ? 'iri' : 'string') };
 	    }
@@ -162,7 +170,7 @@ function contentParser(content) {
 		eatEscapeSequence();
 	    } else {
 		if (ch == '*') {
-		    wildcards.push(index-1);
+		    wildcards.push(index - 2);
 		}
 		chars.push(ch);
 	    }
@@ -183,13 +191,13 @@ function contentParser(content) {
 	if (m) {
 	    return parseFloat(m[0]);
 	}
-	m = eatIfLookingAt('[+-]?(0|[1-9][0-9]*)((?=\\s)|$)/');
+	m = eatIfLookingAt('[-]?(0|[1-9][0-9]*)((?=\\s)|$)');
 	if (m) {
 	    return parseInt(m[0], 10);
 	}
-	m = eatIfLookingAt('[0-9a-fA-F]+((?=\\s)|$)');
+	m = eatIfLookingAt('0[xX][0-9a-fA-F]+((?=\\s)|$)');
 	if (m) {
-	    return parseInt(m[0], 16);
+	    return parseInt(m[0].substring(2), 16);
 	}
 	parseError("Cannot parse a number at ");
     }
@@ -204,9 +212,8 @@ function contentParser(content) {
 	if (eatIfLookingAt(/((unbound)(?=\s)|(unbound)$)/i)) {
 	    return { type: 'unbound' };
 	}
-	var match = eatIfLookingAt(/[<'"]/);
-	if (match) {
-	    return parseStringOrIriWild(match[0]);
+	if (lookingAt(/[<'"]/)) {
+	    return parseStringOrIriWild();
 	}
 	return parseNumber();
     }
@@ -259,6 +266,15 @@ function contentParser(content) {
 	}
     }
 
+    function expectSuccess(f, args, expectedResult) {
+	try {
+	    var res = f(args);
+	    console.log('  succ %o (%o)', f, args);
+	} catch (e) {
+	    console.log('  failed %o (%o)', f, args);
+	}
+    }
+
     function testParseError() {
 	console.log('testParseError');
 	var msg = 'TestParserError';
@@ -270,46 +286,129 @@ function contentParser(content) {
 	}
     }
 
-    function testLookingAt() {
+    function testEatIfLookingAt() {
+	function testOne(x, expectMatch) {
+	    var match = eatIfLookingAt(x);
+	    if (expectMatch) {
+		if (match) {
+		    console.log('  lookingAt("' + x + '") matched at index = %o returned %o', index, match);
+		    return true;
+		}
+		throw 'lookingAt("' + x + '") failed for ' + input + ' at ' + index;
+	    }
+	    if (match) {
+		throw 'lookingAt("' + x + '") unexpectedly matched ' + input + ' at ' + index;
+	    }
+	    console.log('  lookingAt("' + x + '") at index = %o did not match as expected', index, match);
+	    return true;
+	}
+
 	console.log('testLookingAt');
 	initializeParsing({ string: 'abbabaa', index: 0 });
-	var match = lookingAt('abba');
-	if (match) {
-	    console.log('lookingAt("abba") at index = %o returned %o', index, match);
-	    match = lookingAt('abba');
-	    if (match) {
-		console.log('lookingAt("baa") at index = %o returned %o', index, match);
-		match = lookingAt('baba');
-		if (match) {
-		    throw 'lookingAt("baba") at index ' + index + ' unexpectedly returned ' + match;
-		}
-		console.log('lookingAt("baba") at index = %o returned %o', index, match);
-	    } else {
-		throw 'lookingAt("baa") failed for ' + content;
-	    }
+	if (testOne('abba', true) && testOne('baa', true) && testOne('baba', false)) {
+	    console.log('testLookingAt OK');
 	} else {
-	    throw 'lookingAt("abba") failed for ' + content;
+	    console.log('testLookingAt Failed');
 	}
     }
 
-    function testEatIfLookingAt() {
-	console.log('testEatIfLookingAt');
-    }
-
-    function testExpect() {
-	console.log('testExpect');
-    }
+    // function testExpect() {
+    // 	console.log('testExpect');
+    // }
 
     function testParseStringOrIriWild() {
+	var failed = false;
+	function testOne(x) {
+	    initializeParsing({ string: x, index: 0 });
+	    try {
+		console.log(' OK %o', parseStringOrIriWild());
+	    } catch (e) {
+		console.log(' failed %o', x);
+		failed = true;
+	    }
+	}
 	console.log('testParseStringOrIriWild');
+	testOne('<http://example.org>');
+	testOne('<http://*.org>');
+	testOne('<*>');
+	testOne('"apina"');
+	testOne('"api*na"');
+	testOne('"*"');
+	testOne("'a*p*'");
+	testOne("<as");
+	testOne("apina");
+	console.log('testParseStringOrIriWild %o', (failed ? "Failed" : "OK"));
     }
 
     function testParseNumber() {
+	var failed = false;
+	function testOne(x, num) {
+	    initializeParsing({ string: x, index: 0 });
+	    try {
+		var res = parseNumber();
+		if (res != num) {
+		    console.log(' failed %o, got %o', x, res);
+		} else {
+		    console.log('  OK %o', res);
+		}
+	    } catch (e) {
+		console.log('  failed %o', x);
+		failed = true;
+	    }
+	}
 	console.log('testParseNumber');
+	testOne('123', 123);
+	testOne('-123', -123);
+	testOne('0x123', 0x123);
+	testOne('0x123ab13F', 0x123ab13f);
+	testOne('.123', 0.123);
+	testOne('-.123', -0.123);
+	testOne('10.123', 10.123);
+	testOne('-10.123', -10.123);
+	initializeParsing({ string: 'apina', index: 0 });
+	try {
+	    parseNumber();
+	    console.log('  unexpectedly could parse a number');
+	    failed = true;
+	} catch (e) {
+	    console.log('  parsing non-number failed as expected');
+	}
+	console.log('testParseNumber %o', (failed ? "Failed" : "OK"));
     }
 
     function testParseValuePattern() {
+	var failed = false;
+	function testOne(x, expectSuccess, expectedResult) {
+	    initializeParsing({ string: x, index: 0 });
+	    try {
+		var res = parseValuePattern();
+		if (!expectSuccess) {
+		    if (res) {
+			console.log('  unexpectedly succeeded on %o', x);
+			failed = true;
+		    } else {
+			console.log('  expectedly failed %o', x);
+		    }
+		} else {
+		    if ((expectedResult.type == undefined) && (res != expectedResult) || (res.type != expectedResult.type)) {
+			console.log(' failed %o, got %o', x, res);
+		    } else {
+			console.log('  OK %o', res);
+		    }
+		}
+	    } catch (e) {
+		if (expectSuccess) {
+		    console.log('  failed %o', x);
+		    failed = true;
+		} else {
+		    console.log('  expectedly failed %o', x);
+		}
+	    }
+	}
 	console.log('testParseValuePattern');
+	testOne('*', {type: 'wildcard'});
+	testOne('unbound', {type: 'unbound'});
+	console.log('testParseValuePattern %o', (failed ? "Failed" : "OK"));
     }
 
     function testParseConstraint() {
@@ -335,9 +434,9 @@ function contentParser(content) {
     function testParseFunctions() {
 	console.log('testParseFunctions');
 	testParseError();
-	testLookingAt();
+	// testLookingAt();
 	testEatIfLookingAt();
-	testExpect();
+	// testExpect();
 	testParseStringOrIriWild();
 	testParseNumber();
 	testParseValuePattern();
