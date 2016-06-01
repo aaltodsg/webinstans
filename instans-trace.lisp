@@ -293,8 +293,8 @@
 			      ((instans::rdf-blank-node-p x) (format nil "\"~A\"" (instans::uniquely-named-object-name x)))
 			      ((instans::rdf-iri-p x)
 			       ;; (let ((*standard-output* *logstream*))
-			       ;; 	 (describe (and *current-node* (instans::node-instans *current-node*))))
-			       (format nil "\"~A\"" (instans::sparql-value-to-string x :instans (and *current-node* (instans::node-instans *current-node*)))))
+			       ;; 	 (describe (and *current-node* (webinstans-server-instans *server*))))
+			       (format nil "\"~A\"" (instans::sparql-value-to-string x :instans (and *server* (webinstans-server-instans *server*)))))
 			      ((instans::existence-start-node-token-state-p x) (format nil "{\"counter\": ~D, \"isActive\": ~S}"
 										       (instans::existence-start-node-token-state-counter x)
 										       (if (instans::existence-start-node-token-state-active-p x) "true" "false")))
@@ -318,7 +318,7 @@
 
 (defun binding-to-json (x)
   (format nil "{ \"type\": \"binding\", \"var\": ~A, \"value\": ~A}"
-	  (sparql-var-to-json (instans::reverse-resolve-binding (instans::node-instans *current-node*) (first x)))
+	  (sparql-var-to-json (instans::reverse-resolve-binding (webinstans-server-instans *server*) (first x)))
 	  (sparql-value-to-json (second x) :nil-as-false-p t)))
 
 (defun downcase-and-dash-to-underline (string)
