@@ -150,7 +150,7 @@
   (:method ((this instans::existence-start-node))
     (make-instance 'instans-trace-existence-start-node-state
 		   :tokens (instans::token-store-tokens this)
-		   :map-items (instans::token-map-map (instans::existence-start-node-token-map this))))
+		   :map-items (instans::token-map-contents (instans::existence-start-node-token-map this))))
   ;; (:method ((this instans::filter-with-previous-value))
   ;;   (list :map (instans::filter-with-previous-value-token-map this)))
   ;; (:method ((this instans::aggregate-join-node))
